@@ -1,0 +1,388 @@
+import React, { useState } from 'react';
+import { usePOSStore } from '../store/store';
+import { 
+  DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, 
+  Lock, Unlock, Calculator, FileText, CheckCircle2 
+} from 'lucide-react';
+
+export default function CajaModule() {
+  const {
+    cashSession,
+    cashMovements,
+    sales,
+    openCaja,
+    closeCaja,
+    addCashMovement,
+    userRole
+  } = usePOSStore();
+
+  // Inputs
+  const [openingFloat, setOpeningFloat] = useState('500');
+  const [closingCashInput, setClosingCashInput] = useState('');
+  
+  // Cash moves inputs
+  const [moveAmount, setMoveAmount] = useState('');
+  const [moveConcept, setMoveConcept] = useState('');
+  const [moveType, setMoveType] = useState<'in' | 'out'>('out');
+
+  // Arqueo / Calculator Inputs
+  const [cashDenominations, setCashDenominations] = useState({
+    d200: 0,
+    d100: 0,
+    d50: 0,
+    d20: 0,
+    d10: 0,
+    d5: 0,
+    d2: 0,
+    d1: 0,
+    c50: 0,
+    c20: 0,
+    c10: 0,
+  });
+
+  const isSessionOpen = cashSession && cashSession.status === 'open';
+
+  // Calculations for current open session
+  const totalCashSales = sales
+    .filter(s => s.paymentMethod === 'cash')
+    .reduce((acc, s) => acc + s.total, 0);
+
+  const totalCardSales = sales
+    .filter(s => s.paymentMethod === 'card')
+    .reduce((acc, s) => acc + s.total, 0);
+
+  const totalTransferSales = sales
+    .filter(s => s.paymentMethod === 'transfer')
+    .reduce((acc, s) => acc + s.total, 0);
+
+  const cashIns = cashMovements
+    .filter(m => m.type === 'in' && m.concept !== 'Apertura de Caja')
+    .reduce((acc, m) => acc + m.amount, 0);
+
+  const cashOuts = cashMovements
+    .filter(m => m.type === 'out')
+    .reduce((acc, m) => acc + m.amount, 0);
+
+  const openingFloatVal = cashSession?.openingCash || 0;
+  const expectedCashInDrawer = openingFloatVal + totalCashSales + cashIns - cashOuts;
+
+  // Handle open
+  const handleOpenCaja = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(openingFloat);
+    if (isNaN(val) || val < 0) return;
+    openCaja(val, userRole);
+  };
+
+  // Handle close
+  const handleCloseCaja = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(closingCashInput);
+    if (isNaN(val) || val < 0) {
+      alert('Ingrese un monto de arqueo válido.');
+      return;
+    }
+    closeCaja(val);
+    setClosingCashInput('');
+  };
+
+  // Handle cash move
+  const handleAddMove = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(moveAmount);
+    if (isNaN(amount) || amount <= 0 || !moveConcept) return;
+    addCashMovement(moveType, amount, moveConcept);
+    setMoveAmount('');
+    setMoveConcept('');
+  };
+
+  // Arqueo Calculator total sum
+  const calculateArqueoSum = () => {
+    return (
+      cashDenominations.d200 * 200 +
+      cashDenominations.d100 * 100 +
+      cashDenominations.d50 * 50 +
+      cashDenominations.d20 * 20 +
+      cashDenominations.d10 * 10 +
+      cashDenominations.d5 * 5 +
+      cashDenominations.d2 * 2 +
+      cashDenominations.d1 * 1 +
+      cashDenominations.c50 * 0.50 +
+      cashDenominations.c20 * 0.20 +
+      cashDenominations.c10 * 0.10
+    );
+  };
+
+  const arqueoTotalSum = calculateArqueoSum();
+
+  // Load calculated sum to close box input
+  const applyArqueoToClosingInput = () => {
+    setClosingCashInput(arqueoTotalSum.toFixed(2));
+  };
+
+  return (
+    <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      {/* COLUMN 1: SESSION STATUS / APERTURA & CIERRE */}
+      <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col justify-between min-h-[500px]">
+        
+        <div>
+          <h3 className="text-xs font-bold text-zinc-400 mb-4 flex items-center gap-1.5 uppercase tracking-wider border-b border-zinc-900 pb-3">
+            <Lock className="w-4 h-4 text-cyan-500" />
+            <span>Control de Turno y Caja</span>
+          </h3>
+
+          {!isSessionOpen ? (
+            /* Open Caja panel */
+            <div className="flex flex-col gap-4 text-xs font-semibold">
+              <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-xl text-red-400 text-center leading-relaxed">
+                🚨 La caja registradora se encuentra actualmente <strong>CERRADA</strong>. Abra turno de caja para procesar facturación.
+              </div>
+
+              <form onSubmit={handleOpenCaja} className="flex flex-col gap-3">
+                <div>
+                  <label className="block text-zinc-500 mb-1">Monto de Apertura (Float) S/</label>
+                  <input
+                    type="number"
+                    value={openingFloat}
+                    onChange={(e) => setOpeningFloat(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white font-mono text-center text-lg outline-none"
+                    placeholder="S/ 500.00"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-950/20"
+                >
+                  <Unlock className="w-4 h-4" />
+                  <span>Abrir Caja de Turno</span>
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* Close Caja panel */
+            <div className="flex flex-col gap-4 text-xs font-semibold">
+              <div className="p-4 bg-emerald-950/20 border border-emerald-900/40 rounded-xl text-emerald-400 text-center flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                <span>Caja Registradora ABIERTA por {cashSession?.user}</span>
+              </div>
+
+              <form onSubmit={handleCloseCaja} className="flex flex-col gap-3 pt-2">
+                <div>
+                  <label className="block text-zinc-500 mb-1">Monto Físico al Arqueo (S/)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      required
+                      step="0.01"
+                      value={closingCashInput}
+                      onChange={(e) => setClosingCashInput(e.target.value)}
+                      placeholder="S/ 0.00"
+                      className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-center outline-none"
+                    />
+                    {arqueoTotalSum > 0 && (
+                      <button
+                        type="button"
+                        onClick={applyArqueoToClosingInput}
+                        className="px-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded-xl cursor-pointer"
+                        title="Cargar cálculo de arqueador"
+                      >
+                        Cargar S/ {arqueoTotalSum.toFixed(1)}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-red-950/20"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Realizar Corte / Cierre de Caja</span>
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* Audit closing log if closed */}
+        {cashSession && cashSession.status === 'closed' && (
+          <div className="mt-6 p-4 bg-zinc-900/40 border border-zinc-850 rounded-xl text-xs font-semibold flex flex-col gap-2">
+            <h4 className="font-bold text-white uppercase border-b border-zinc-850 pb-1 mb-1">Último Corte Procesado:</h4>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Monto Arqueo:</span>
+              <span className="text-white font-mono">S/ {cashSession.closingCash?.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Esperado en Caja:</span>
+              <span className="text-white font-mono">S/ {cashSession.calculatedCash?.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between border-t border-dashed border-zinc-800 pt-1">
+              <span className="text-zinc-500">Diferencia (Sobrante/Faltante):</span>
+              <span className={`font-mono font-bold ${cashSession.difference && cashSession.difference < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                S/ {cashSession.difference?.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* COLUMN 2: REAL-TIME DRAWER REPORT */}
+      <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col justify-between min-h-[500px]">
+        <div>
+          <h3 className="text-xs font-bold text-zinc-400 mb-4 flex items-center gap-1.5 uppercase tracking-wider border-b border-zinc-900 pb-3">
+            <FileText className="w-4 h-4 text-emerald-500" />
+            <span>Auditoría de Fondos en Caja</span>
+          </h3>
+
+          <div className="flex flex-col gap-2.5 text-xs font-semibold">
+            <div className="flex justify-between items-center py-1.5 border-b border-zinc-900">
+              <span className="text-zinc-500">(+) Fondo de Apertura:</span>
+              <span className="font-mono text-white">S/ {openingFloatVal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-zinc-900">
+              <span className="text-zinc-500">(+) Ventas en Efectivo:</span>
+              <span className="font-mono text-white">S/ {totalCashSales.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-zinc-900">
+              <span className="text-zinc-500">(+) Entradas de Efectivo (Otros):</span>
+              <span className="font-mono text-white">S/ {cashIns.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-zinc-900">
+              <span className="text-zinc-500">(-) Salidas de Efectivo (Otros/Gastos):</span>
+              <span className="font-mono text-red-400">- S/ {cashOuts.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-2.5 border-t-2 border-dashed border-zinc-800 mt-2">
+              <span className="text-zinc-300 font-bold">(=) EFECTIVO ESTIMADO EN CAJÓN:</span>
+              <strong className="font-mono text-sm text-cyan-400">S/ {expectedCashInDrawer.toFixed(2)}</strong>
+            </div>
+
+            {/* Non-cash transactions */}
+            <div className="border-t border-zinc-900 pt-4 mt-2">
+              <h4 className="font-bold text-[10px] text-zinc-500 uppercase mb-2">Transacciones Sin Efectivo (Bancos/POS):</h4>
+              <div className="flex justify-between items-center py-1 border-b border-zinc-900">
+                <span className="text-zinc-500">Ventas Tarjeta:</span>
+                <span className="font-mono text-zinc-300">S/ {totalCardSales.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-zinc-500">Ventas QR/Transferencia:</span>
+                <span className="font-mono text-zinc-300">S/ {totalTransferSales.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Record cash move form */}
+        {isSessionOpen && (
+          <form onSubmit={handleAddMove} className="mt-6 pt-4 border-t border-zinc-900 flex flex-col gap-3 font-semibold text-xs">
+            <h4 className="font-bold text-[10px] text-white uppercase">Registrar Entrada / Salida Auxiliar</h4>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-zinc-500 mb-1">Monto S/</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={moveAmount}
+                  onChange={(e) => setMoveAmount(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-white font-mono"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="block text-zinc-500 mb-1">Tipo</label>
+                <select
+                  value={moveType}
+                  onChange={(e) => setMoveType(e.target.value as any)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-white cursor-pointer"
+                >
+                  <option value="out">⬇ Salida / Retiro</option>
+                  <option value="in">⬆ Depósito / Entrada</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-zinc-500 mb-1">Concepto / Motivo</label>
+              <input
+                type="text"
+                required
+                value={moveConcept}
+                onChange={(e) => setMoveConcept(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-white"
+                placeholder="Ej. Pago a proveedor de harinas"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white rounded-xl cursor-pointer font-bold flex items-center justify-center gap-1.5"
+            >
+              {moveType === 'in' ? <ArrowUpRight className="w-4 h-4 text-emerald-500" /> : <ArrowDownRight className="w-4 h-4 text-red-500" />}
+              <span>Registrar Movimiento</span>
+            </button>
+          </form>
+        )}
+
+      </div>
+
+      {/* COLUMN 3: ARQUEADOR CALCULATOR TOOL */}
+      <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md min-h-[500px]">
+        <h3 className="text-xs font-bold text-zinc-400 mb-4 flex items-center gap-1.5 uppercase tracking-wider border-b border-zinc-900 pb-3">
+          <Calculator className="w-4 h-4 text-cyan-500" />
+          <span>Arqueador de Efectivo Físico</span>
+        </h3>
+
+        <div className="flex flex-col gap-2 overflow-y-auto max-h-[420px] pr-1 scrollbar-thin text-xs">
+          
+          <div className="grid grid-cols-3 gap-2 font-bold text-[10px] text-zinc-500 border-b border-zinc-900 pb-1.5 mb-1.5 uppercase">
+            <span>Denom</span>
+            <span className="text-center">Cantidad</span>
+            <span className="text-right">Total (S/)</span>
+          </div>
+
+          {[
+            { key: 'd200', label: 'Billetes S/ 200', multiplier: 200 },
+            { key: 'd100', label: 'Billetes S/ 100', multiplier: 100 },
+            { key: 'd50', label: 'Billetes S/ 50', multiplier: 50 },
+            { key: 'd20', label: 'Billetes S/ 20', multiplier: 20 },
+            { key: 'd10', label: 'Billetes S/ 10', multiplier: 10 },
+            { key: 'd5', label: 'Monedas S/ 5', multiplier: 5 },
+            { key: 'd2', label: 'Monedas S/ 2', multiplier: 2 },
+            { key: 'd1', label: 'Monedas S/ 1', multiplier: 1 },
+            { key: 'c50', label: 'Monedas S/ 0.50', multiplier: 0.50 },
+            { key: 'c20', label: 'Monedas S/ 0.20', multiplier: 0.20 },
+            { key: 'c10', label: 'Monedas S/ 0.10', multiplier: 0.10 },
+          ].map(row => (
+            <div key={row.key} className="grid grid-cols-3 gap-2 items-center font-medium">
+              <span className="text-zinc-400 font-semibold">{row.label}:</span>
+              <input
+                type="number"
+                min={0}
+                value={(cashDenominations as any)[row.key]}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 0;
+                  setCashDenominations(prev => ({ ...prev, [row.key]: val }));
+                }}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-0.5 text-center text-white font-mono"
+              />
+              <span className="text-right font-mono text-zinc-400">
+                S/ {(((cashDenominations as any)[row.key] || 0) * row.multiplier).toFixed(2)}
+              </span>
+            </div>
+          ))}
+
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-zinc-900 flex justify-between items-center text-xs font-semibold">
+          <span className="text-zinc-500 font-bold uppercase">Total Arqueado:</span>
+          <strong className="text-lg font-black font-mono text-emerald-400">S/ {arqueoTotalSum.toFixed(2)}</strong>
+        </div>
+
+      </div>
+
+    </div>
+  );
+}

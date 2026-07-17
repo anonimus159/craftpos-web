@@ -1,0 +1,324 @@
+import React from 'react';
+import { usePOSStore } from '../store/store';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
+import { 
+  TrendingUp, Calendar, AlertTriangle, Box, DollarSign, ListOrdered, 
+  ArrowUpRight, ArrowDownRight, User 
+} from 'lucide-react';
+
+export default function ReportesModule() {
+  const {
+    sales,
+    products,
+    cashMovements,
+    cashSession
+  } = usePOSStore();
+
+  // 1. KPI Calculations
+  const totalSalesVolume = sales.reduce((acc, s) => acc + s.total, 0);
+  const transactionCount = sales.length;
+  
+  const lowStockCount = products.filter(p => p.stock <= p.minStock && p.stock > 0).length;
+  const outOfStockCount = products.filter(p => p.stock === 0).length;
+
+  // 2. Chart Data: Sales share by Vertical
+  const getSalesShareByModule = () => {
+    const dataObj: Record<string, number> = {
+      restaurant: 0,
+      pharmacy: 0,
+      bakery: 0,
+      fruit: 0,
+      business: 0
+    };
+
+    sales.forEach(s => {
+      if (dataObj[s.storeType] !== undefined) {
+        dataObj[s.storeType] += s.total;
+      }
+    });
+
+    const labelMap: Record<string, string> = {
+      restaurant: 'Restaurante',
+      pharmacy: 'Farmacia',
+      bakery: 'Panadería',
+      fruit: 'Frutería',
+      business: 'Negocio Gral'
+    };
+
+    return Object.entries(dataObj).map(([key, val]) => ({
+      name: labelMap[key] || key,
+      value: parseFloat(val.toFixed(2))
+    })).filter(item => item.value > 0);
+  };
+
+  const pieData = getSalesShareByModule();
+  const COLORS = ['#EF4444', '#10B981', '#F59E0B', '#22C55E', '#3B82F6'];
+
+  // 3. Chart Data: Hourly / Transactional Sales Timeline
+  const getSalesTimeline = () => {
+    if (sales.length === 0) {
+      return [
+        { time: '10:00', total: 0 },
+        { time: '11:00', total: 0 },
+        { time: '12:00', total: 0 }
+      ];
+    }
+
+    // Sort by timestamp
+    const sortedSales = [...sales].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    return sortedSales.map((s, idx) => ({
+      time: new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      total: parseFloat(s.total.toFixed(2)),
+      title: `Tx ${idx + 1}`
+    }));
+  };
+
+  const timelineData = getSalesTimeline();
+
+  // 4. Bestselling Products
+  const getBestsellingProducts = () => {
+    const countMap: Record<string, { name: string; qty: number; totalSales: number; category: string }> = {};
+
+    sales.forEach(sale => {
+      sale.items.forEach(item => {
+        const id = item.product.id;
+        const mult = item.weight || item.quantity;
+        const price = item.isGenericEquivalent ? (item.product.costPrice * 1.5) : item.product.salePrice;
+        
+        if (!countMap[id]) {
+          countMap[id] = { 
+            name: item.product.name, 
+            qty: 0, 
+            totalSales: 0,
+            category: item.product.category
+          };
+        }
+        countMap[id].qty += mult;
+        countMap[id].totalSales += price * mult;
+      });
+    });
+
+    return Object.values(countMap)
+      .sort((a, b) => b.totalSales - a.totalSales)
+      .slice(0, 5);
+  };
+
+  const bestSellers = getBestsellingProducts();
+
+  // 5. Exits / Cash cuts
+  const cashOutMovements = cashMovements.filter(m => m.type === 'out');
+
+  return (
+    <div className="w-full flex flex-col gap-6">
+      
+      {/* KPI GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div className="bg-zinc-950/45 border border-zinc-900 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+          <div>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Volumen Total Facturado</span>
+            <strong className="text-xl font-black font-mono text-white">S/ {totalSalesVolume.toFixed(2)}</strong>
+            <span className="text-[10px] text-emerald-500 block mt-1 font-semibold">Total Acumulado POS</span>
+          </div>
+          <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-900/40 text-emerald-400">
+            <DollarSign className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-zinc-950/45 border border-zinc-900 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+          <div>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Transacciones Completadas</span>
+            <strong className="text-xl font-black font-mono text-white">{transactionCount} ventas</strong>
+            <span className="text-[10px] text-cyan-500 block mt-1 font-semibold">Tickets emitidos</span>
+          </div>
+          <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-900/40 text-cyan-400">
+            <ListOrdered className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-zinc-950/45 border border-zinc-900 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+          <div>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Alertas Stock Mínimo</span>
+            <strong className="text-xl font-black font-mono text-white">{lowStockCount} SKU</strong>
+            <span className="text-[10px] text-amber-500 block mt-1 font-semibold">Requieren reposición</span>
+          </div>
+          <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-900/40 text-amber-400">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-zinc-950/45 border border-zinc-900 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+          <div>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Productos Agotados</span>
+            <strong className="text-xl font-black font-mono text-white">{outOfStockCount} SKU</strong>
+            <span className="text-[10px] text-red-500 block mt-1 font-semibold">Sin disponibilidad</span>
+          </div>
+          <div className="p-3 rounded-xl bg-red-950/40 border border-red-900/40 text-red-400">
+            <Box className="w-5 h-5" />
+          </div>
+        </div>
+
+      </div>
+
+      {/* CHARTS CONTAINER - AREA CHART & PIE CHART */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Sales Timeline chart (2/3 col) */}
+        <div className="lg:col-span-2 bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col justify-between h-[360px]">
+          <div>
+            <h3 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+              <TrendingUp className="w-4 h-4 text-cyan-500" />
+              <span>Curva de Facturación por Ventas (Día Actual)</span>
+            </h3>
+          </div>
+          
+          <div className="flex-1 w-full text-xs font-mono">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={timelineData}>
+                <defs>
+                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                <XAxis dataKey="time" stroke="#666" fontSize={10} />
+                <YAxis stroke="#666" fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', color: '#fff' }}
+                  labelStyle={{ fontWeight: 'bold' }}
+                />
+                <Area type="monotone" dataKey="total" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Share by vertical module (1/3 col) */}
+        <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col justify-between h-[360px]">
+          <div>
+            <h3 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+              <Calendar className="w-4 h-4 text-emerald-500" />
+              <span>Cuota de Ventas por Rubro</span>
+            </h3>
+          </div>
+
+          <div className="flex-1 w-full flex items-center justify-center text-xs font-mono relative">
+            {pieData.length === 0 ? (
+              <span className="text-zinc-500">Sin datos de ventas</span>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', color: '#fff' }} />
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 9 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* DETAILED TABLES GRID: BEST SELLERS & EXPENSES */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Products bestseller ranking */}
+        <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+          <h3 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+            <TrendingUp className="w-4 h-4 text-cyan-500" />
+            <span>Top 5 Productos Más Vendidos</span>
+          </h3>
+
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-900">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-zinc-900/50 border-b border-zinc-900 text-zinc-400 font-semibold uppercase tracking-wider">
+                  <th className="p-2.5">Producto</th>
+                  <th className="p-2.5">Categoría</th>
+                  <th className="p-2.5 text-center">Cant. Vendida</th>
+                  <th className="p-2.5 text-right">Facturado (S/)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900 font-medium">
+                {bestSellers.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-zinc-500 font-mono">
+                      No hay transacciones registradas.
+                    </td>
+                  </tr>
+                ) : (
+                  bestSellers.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-zinc-900/30">
+                      <td className="p-2.5 text-white font-bold">{item.name}</td>
+                      <td className="p-2.5 text-zinc-400">{item.category}</td>
+                      <td className="p-2.5 text-center font-mono text-zinc-300">{item.qty.toFixed(1)}</td>
+                      <td className="p-2.5 text-right font-mono text-emerald-400 font-bold">S/ {item.totalSales.toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Expenses / cash outs log */}
+        <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+          <h3 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+            <ArrowDownRight className="w-4 h-4 text-red-500" />
+            <span>Egresos y Retiros Auxiliares de Caja</span>
+          </h3>
+
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-900">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-zinc-900/50 border-b border-zinc-900 text-zinc-400 font-semibold uppercase tracking-wider">
+                  <th className="p-2.5">Fecha</th>
+                  <th className="p-2.5">Concepto / Destinatario</th>
+                  <th className="p-2.5">Usuario</th>
+                  <th className="p-2.5 text-right">Monto Retirado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900 font-medium">
+                {cashOutMovements.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-zinc-500 font-mono">
+                      No se registran salidas de efectivo auxiliares.
+                    </td>
+                  </tr>
+                ) : (
+                  cashOutMovements.map((m, idx) => (
+                    <tr key={idx} className="hover:bg-zinc-900/30">
+                      <td className="p-2.5 text-zinc-400">{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                      <td className="p-2.5 text-white">{m.concept}</td>
+                      <td className="p-2.5 text-zinc-300 font-semibold">{m.user}</td>
+                      <td className="p-2.5 text-right font-mono text-red-400 font-bold">- S/ {m.amount.toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  );
+}

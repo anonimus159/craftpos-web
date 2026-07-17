@@ -1,0 +1,352 @@
+import React, { useState } from 'react';
+import { usePOSStore } from '../store/store';
+import { User, Plus, Users, ShoppingBag, FolderOpen, Mail, Phone, MapPin } from 'lucide-react';
+
+export default function ClientesProveedoresModule() {
+  const {
+    clients,
+    suppliers,
+    sales,
+    addClient,
+    addSupplier
+  } = usePOSStore();
+
+  const [activeSection, setActiveSection] = useState<'clients' | 'suppliers'>('clients');
+
+  // Form states
+  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', address: '' });
+  const [newSupplier, setNewSupplier] = useState({ name: '', email: '', phone: '', companyName: '' });
+
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+
+  const handleClientSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClient.name) return;
+    addClient(newClient);
+    setNewClient({ name: '', email: '', phone: '', address: '' });
+    setShowClientModal(false);
+  };
+
+  const handleSupplierSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSupplier.name || !newSupplier.companyName) return;
+    addSupplier(newSupplier);
+    setNewSupplier({ name: '', email: '', phone: '', companyName: '' });
+    setShowSupplierModal(false);
+  };
+
+  return (
+    <div className="w-full flex flex-col gap-6">
+      
+      {/* TABS SELECTION */}
+      <div className="flex justify-between items-center bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-xl backdrop-blur-md">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveSection('clients')}
+            className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+              activeSection === 'clients'
+                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+                : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            Base de Datos Clientes
+          </button>
+          <button
+            onClick={() => setActiveSection('suppliers')}
+            className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+              activeSection === 'suppliers'
+                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+                : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            Proveedores de Mercadería
+          </button>
+        </div>
+
+        <button
+          onClick={() => activeSection === 'clients' ? setShowClientModal(true) : setShowSupplierModal(true)}
+          className="px-4 py-2 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-lg shadow-indigo-950/20"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Agregar {activeSection === 'clients' ? 'Cliente' : 'Proveedor'}</span>
+        </button>
+      </div>
+
+      {/* RENDER ACTIVE DATABASE TABLE */}
+      {activeSection === 'clients' ? (
+        <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+          <h3 className="text-xs font-bold text-zinc-400 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+            <Users className="w-4 h-4 text-cyan-500" />
+            <span>Fichero de Clientes Frecuentes</span>
+          </h3>
+
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-900">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-zinc-900/50 border-b border-zinc-900 text-zinc-400 font-semibold uppercase tracking-wider">
+                  <th className="p-3">Cliente</th>
+                  <th className="p-3">Datos Contacto</th>
+                  <th className="p-3">Dirección Envío</th>
+                  <th className="p-3 text-center">Visitas POS</th>
+                  <th className="p-3 text-right">Monto Total Compras</th>
+                  <th className="p-3 text-center">Nivel Cliente</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900 font-medium">
+                {clients.map((c) => {
+                  // Calculate actual spent based on transactions if available, otherwise mock initial values
+                  const salesTotals = sales
+                    .filter(s => s.cashier !== '' /* just to count all sales */) 
+                    // Let's keep it simple and just read totalSpent mock property
+                  
+                  let badge = 'General';
+                  let badgeColor = 'text-zinc-400 bg-zinc-900/50 border-zinc-800';
+
+                  if (c.totalSpent > 300) {
+                    badge = 'VIP Platino';
+                    badgeColor = 'text-cyan-400 bg-cyan-950/20 border-cyan-900/40 animate-pulse';
+                  } else if (c.totalSpent > 100) {
+                    badge = 'Cliente Frecuente';
+                    badgeColor = 'text-emerald-400 bg-emerald-950/20 border-emerald-900/40';
+                  }
+
+                  return (
+                    <tr key={c.id} className="hover:bg-zinc-900/30 transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 font-bold text-xs">
+                            {c.name[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-white block">{c.name}</span>
+                            <span className="text-[10px] text-zinc-500 font-mono">ID: {c.id}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-0.5 text-zinc-400">
+                          <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-zinc-650" /> {c.email}</span>
+                          <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-zinc-650" /> {c.phone}</span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className="flex items-center gap-1 text-zinc-400">
+                          <MapPin className="w-3.5 h-3.5 text-zinc-650" />
+                          <span>{c.address}</span>
+                        </span>
+                      </td>
+                      <td className="p-3 text-center font-mono text-white">{c.visitsCount}</td>
+                      <td className="p-3 text-right font-mono font-bold text-white">S/ {c.totalSpent.toFixed(2)}</td>
+                      <td className="p-3 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeColor}`}>
+                          {badge}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+          <h3 className="text-xs font-bold text-zinc-400 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+            <FolderOpen className="w-4 h-4 text-cyan-500" />
+            <span>Registro de Proveedores Mayoristas</span>
+          </h3>
+
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-900">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-zinc-900/50 border-b border-zinc-900 text-zinc-400 font-semibold uppercase tracking-wider">
+                  <th className="p-3">Razón Social</th>
+                  <th className="p-3">Atención / Ventas</th>
+                  <th className="p-3">Datos Contacto</th>
+                  <th className="p-3 text-right">Volumen de Compra Acumulado</th>
+                  <th className="p-3 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900 font-medium">
+                {suppliers.map((s) => (
+                  <tr key={s.id} className="hover:bg-zinc-900/30 transition-colors">
+                    <td className="p-3">
+                      <div>
+                        <span className="font-semibold text-white block">{s.companyName}</span>
+                        <span className="text-[10px] text-zinc-500 font-mono">ID: {s.id}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-zinc-300 font-bold">{s.name}</td>
+                    <td className="p-3">
+                      <div className="flex flex-col gap-0.5 text-zinc-400">
+                        <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-zinc-650" /> {s.email}</span>
+                        <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-zinc-650" /> {s.phone}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-right font-mono font-bold text-white">S/ {s.totalPurchases.toFixed(2)}</td>
+                    <td className="p-3 text-center">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border border-green-900/40 text-green-400 bg-green-950/20">
+                        Activo / Homologado
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE CLIENT MODAL */}
+      {showClientModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-900 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-4">
+            <h3 className="text-sm font-bold text-white border-b border-zinc-900 pb-3 flex items-center gap-1.5">
+              <Users className="w-5 h-5 text-cyan-500" />
+              <span>Registrar Nuevo Cliente</span>
+            </h3>
+            <form onSubmit={handleClientSubmit} className="flex flex-col gap-3 font-semibold text-xs">
+              <div>
+                <label className="block text-zinc-500 mb-1">Nombre Completo</label>
+                <input
+                  type="text"
+                  required
+                  value={newClient.name}
+                  onChange={(e) => setNewClient(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                  placeholder="Ej. Carlos Mendoza"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-500 mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    value={newClient.phone}
+                    onChange={(e) => setNewClient(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. +51 900 111 222"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-500 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={newClient.email}
+                    onChange={(e) => setNewClient(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. carlos@hotmail.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-zinc-500 mb-1">Dirección de Envío</label>
+                <input
+                  type="text"
+                  value={newClient.address}
+                  onChange={(e) => setNewClient(prev => ({ ...prev, address: e.target.value }))}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                  placeholder="Ej. Calle Los Pinos 102, Lima"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClientModal(false)}
+                  className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg"
+                >
+                  Guardar Cliente
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE SUPPLIER MODAL */}
+      {showSupplierModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-900 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-4">
+            <h3 className="text-sm font-bold text-white border-b border-zinc-900 pb-3 flex items-center gap-1.5">
+              <FolderOpen className="w-5 h-5 text-cyan-500" />
+              <span>Registrar Nuevo Proveedor Mayorista</span>
+            </h3>
+            <form onSubmit={handleSupplierSubmit} className="flex flex-col gap-3 font-semibold text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-500 mb-1">Contacto Comercial</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSupplier.name}
+                    onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. Roberto Sánchez"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-500 mb-1">Razón Social / Empresa</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSupplier.companyName}
+                    onChange={(e) => setNewSupplier(prev => ({ ...prev, companyName: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. Distribuidora Sur S.A."
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-500 mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    value={newSupplier.phone}
+                    onChange={(e) => setNewSupplier(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. 0800-999-3000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-500 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={newSupplier.email}
+                    onChange={(e) => setNewSupplier(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. ventas@surdistribuidora.com"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSupplierModal(false)}
+                  className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg"
+                >
+                  Guardar Proveedor
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

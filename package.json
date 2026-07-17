@@ -1,0 +1,73 @@
+{
+  "name": "craftpos",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "electron-dev": "next build && electron .",
+    "dist": "next build && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
+    "better-sqlite3": "^12.11.1",
+    "idb-keyval": "^6.2.5",
+    "node-machine-id": "^1.1.12",
+    "png-to-ico": "^3.0.2",
+    "resend": "^6.17.2",
+    "stripe": "^22.3.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "framer-motion": "^11.2.10",
+    "lucide-react": "^0.395.0",
+    "next": "16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^2.12.7",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "zustand": "^4.5.2"
+  },
+  "build": {
+    "appId": "com.craftpos.desktop",
+    "productName": "CraftPOS",
+    "copyright": "Copyright © 2026 CraftPOS",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/craftpos_icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CraftPOS",
+      "installerIcon": "public/craftpos_icon.ico",
+      "uninstallerIcon": "public/craftpos_icon.ico",
+      "installerHeaderIcon": "public/craftpos_icon.ico"
+    },
+    "files": [
+      "out/**/*",
+      "main.js",
+      "preload.js",
+      "package.json",
+      "public/craftpos_icon.ico"
+    ]
+  }
+}

@@ -1,0 +1,1242 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { usePOSStore } from '../store/store';
+import { CartItem, Product, TableState, Sale } from '../types/types';
+import { 
+  Search, Plus, Minus, Trash2, CreditCard, DollarSign, 
+  Percent, Printer, RefreshCw, ShoppingBag, Eye, User, 
+  AlertTriangle, Check, Layers, ChevronRight
+} from 'lucide-react';
+
+export default function VentasModule() {
+  const {
+    currentModule,
+    userRole,
+    products,
+    clients,
+    activeCarts,
+    cartDiscounts,
+    restaurantTables,
+    bakeryTables,
+    selectedTableId,
+    cashSession,
+    processCheckout,
+    addToCart,
+    removeFromCart,
+    updateCartQty,
+    applyDiscount,
+    clearCart,
+    selectTable,
+    updateTableStatus,
+    updateTableGuests,
+    scanBarcode,
+    sales,
+    addClient,
+    addLog
+  } = usePOSStore();
+
+  // Component states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState('c-gen');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+  const [cashReceived, setCashReceived] = useState<string>('');
+  
+  // Modals
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [currentSaleInvoice, setCurrentSaleInvoice] = useState<Sale | null>(null);
+  
+  // Barcode search
+  const [barcodeInput, setBarcodeInput] = useState('');
+
+  // Pharmacy Modals & Warnings
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+  const [pendingControlledProduct, setPendingControlledProduct] = useState<Product | null>(null);
+  const [prescriptionData, setPrescriptionData] = useState({ doctorId: '', doctorLicense: '', patientName: '' });
+  
+  // Fruit Scale States
+  const [showScaleModal, setShowScaleModal] = useState(false);
+  const [selectedFruit, setSelectedFruit] = useState<Product | null>(null);
+  const [fruitWeight, setFruitWeight] = useState('1.00');
+
+  // New Client States
+  const [showNewClientModal, setShowNewClientModal] = useState(false);
+  const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '', address: '' });
+
+  // Get active cart based on context (direct cart or table cart)
+  const isTableEnv = currentModule === 'restaurant' || currentModule === 'bakery';
+  const getActiveCartItems = (): CartItem[] => {
+    if (isTableEnv && selectedTableId) {
+      const tables = currentModule === 'restaurant' ? restaurantTables : bakeryTables;
+      const table = tables.find(t => t.id === selectedTableId);
+      return table ? table.cart : [];
+    }
+    return activeCarts[currentModule] || [];
+  };
+
+  const cartItems = getActiveCartItems();
+  const discountPercent = cartDiscounts[currentModule] || 0;
+
+  // Totals calculations
+  const calculateSubtotal = () => {
+    return cartItems.reduce((acc, item) => {
+      const price = item.isGenericEquivalent ? (item.product.costPrice * 1.5) : item.product.salePrice;
+      const multiplier = item.weight || item.quantity;
+      return acc + (price * multiplier);
+    }, 0);
+  };
+
+  const subtotal = calculateSubtotal();
+  const discountAmount = subtotal * (discountPercent / 100);
+  const tax = (subtotal - discountAmount) * 0.18; // 18% IGV
+  const total = subtotal - discountAmount;
+
+  // Filter products by current vertical
+  const filteredProducts = products.filter(p => p.storeType === currentModule);
+
+  // Search results
+  const searchResults = searchQuery
+    ? filteredProducts.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        p.barcode.includes(searchQuery) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : filteredProducts.slice(0, 8);
+
+  // Keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        // Product tab active
+      }
+      if (e.key === 'c' && e.altKey) {
+        e.preventDefault();
+        handleNormalCheckoutTrigger();
+      }
+      if (e.key === 'r' && e.altKey) {
+        e.preventDefault();
+        handleQuickCheckout();
+      }
+      if (e.key === 'a' && e.altKey) {
+        e.preventDefault();
+        setShowNewClientModal(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cartItems, total]);
+
+  // Drug Interaction Checking (Pharmacy specific)
+  const getDrugInteractions = () => {
+    if (currentModule !== 'pharmacy') return [];
+    const cartProductIds = cartItems.map(item => item.product.id);
+    const warnings: string[] = [];
+    
+    // Simple rule: Clonazepam (p4) and Morfina (p5) interact dangerously
+    if (cartProductIds.includes('p4') && cartProductIds.includes('p5')) {
+      warnings.push("⚠️ INTERACCIÓN CRÍTICA: La combinación de Clonazepam y Morfina puede provocar depresión respiratoria grave. Monitorear estrechamente o sugerir alternativa.");
+    }
+    // Ibuprofeno (p3) and Aspirina (p6) interact
+    if (cartProductIds.includes('p3') && cartProductIds.includes('p6')) {
+      warnings.push("⚠️ Interacción Moderada: El uso conjunto de Ibuprofeno y Aspirina puede disminuir el efecto cardioprotector de la aspirina y aumentar el riesgo de sangrado gastrointestinal.");
+    }
+    return warnings;
+  };
+  const drugWarnings = getDrugInteractions();
+
+  // Barcode Scan submission
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!barcodeInput) return;
+    const found = scanBarcode(barcodeInput);
+    if (found) {
+      setBarcodeInput('');
+      addLog(`Código '${barcodeInput}' escaneado correctamente`, currentModule);
+    } else {
+      alert('Producto no encontrado en este módulo.');
+      addLog(`Intento fallido de escaneo código: '${barcodeInput}'`, currentModule);
+    }
+  };
+
+  // Add Item to cart with Vertical specifics
+  const handleAddItem = (product: Product) => {
+    if (currentModule === 'pharmacy' && product.isControlled) {
+      // Trigger controlled prescription verification
+      setPendingControlledProduct(product);
+      setShowPrescriptionModal(true);
+      return;
+    }
+
+    if (currentModule === 'fruit') {
+      // Trigger weight input scale simulator
+      setSelectedFruit(product);
+      setFruitWeight('1.00');
+      setShowScaleModal(true);
+      return;
+    }
+
+    // Default retail / rest add
+    addToCart({
+      product,
+      quantity: 1,
+      discountPercentage: 0
+    });
+  };
+
+  // Prescription validation confirm
+  const handlePrescriptionConfirm = () => {
+    if (!pendingControlledProduct) return;
+    if (!prescriptionData.doctorId || !prescriptionData.doctorLicense || !prescriptionData.patientName) {
+      alert('Por favor complete todos los datos de la receta médica.');
+      return;
+    }
+    
+    addToCart({
+      product: pendingControlledProduct,
+      quantity: 1,
+      discountPercentage: 0
+    });
+    
+    addLog(`Receta archivada verificada para ${pendingControlledProduct.name} - Paciente: ${prescriptionData.patientName}, Dr. Lic: ${prescriptionData.doctorLicense}`, 'Farmacia');
+    
+    // Reset
+    setShowPrescriptionModal(false);
+    setPendingControlledProduct(null);
+    setPrescriptionData({ doctorId: '', doctorLicense: '', patientName: '' });
+  };
+
+  // Fruit weight confirm
+  const handleScaleConfirm = () => {
+    if (!selectedFruit) return;
+    const weight = parseFloat(fruitWeight);
+    if (isNaN(weight) || weight <= 0) {
+      alert('Ingrese un peso válido.');
+      return;
+    }
+
+    addToCart({
+      product: selectedFruit,
+      quantity: 1,
+      discountPercentage: 0,
+      weight
+    });
+
+    addLog(`Pesaje simulado para ${selectedFruit.name}: ${weight.toFixed(3)} kg`, 'Frutería');
+
+    setShowScaleModal(false);
+    setSelectedFruit(null);
+  };
+
+  // Simulate Scale trigger (yields random weight)
+  const handleSimulateScale = () => {
+    const weights = ['0.450', '0.780', '1.240', '1.850', '2.340', '0.920'];
+    const randomWeight = weights[Math.floor(Math.random() * weights.length)];
+    setFruitWeight(randomWeight);
+  };
+
+  // Generic equivalents search (Pharmacy specific)
+  const handleSuggestGeneric = (item: CartItem) => {
+    if (!item.product.genericEquivalent) return;
+    const genericItem = products.find(p => p.name === item.product.genericEquivalent && p.storeType === 'pharmacy');
+    if (genericItem) {
+      removeFromCart(item.product.id);
+      addToCart({
+        product: genericItem,
+        quantity: item.quantity,
+        discountPercentage: 0,
+        isGenericEquivalent: true
+      });
+      addLog(`Sugerido equivalente genérico: ${genericItem.name} en reemplazo de ${item.product.name}`, 'Farmacia');
+    }
+  };
+
+  // Open normal checkout modal
+  const handleNormalCheckoutTrigger = () => {
+    if (cartItems.length === 0) return;
+    setCashReceived(total.toFixed(2));
+    setShowCheckoutModal(true);
+  };
+
+  // Complete checkout
+  const handleCheckoutSubmit = () => {
+    const cashVal = parseFloat(cashReceived);
+    if (paymentMethod === 'cash' && (isNaN(cashVal) || cashVal < total)) {
+      alert('El efectivo recibido es menor al total.');
+      return;
+    }
+
+    const res = processCheckout(paymentMethod, cashVal);
+    if (res.success && res.sale) {
+      setCurrentSaleInvoice(res.sale);
+      setShowCheckoutModal(false);
+      setShowInvoiceModal(true);
+    } else {
+      alert('Error al realizar el cobro. Asegúrese de abrir la caja antes.');
+    }
+  };
+
+  // Quick checkout
+  const handleQuickCheckout = () => {
+    if (cartItems.length === 0) return;
+    const res = processCheckout('cash', total);
+    if (res.success && res.sale) {
+      setCurrentSaleInvoice(res.sale);
+      setShowInvoiceModal(true);
+      // Play a quick register sound if needed (using simulated alert)
+      addLog(`Cobro Rápido en Efectivo procesado.`, currentModule);
+    } else {
+      alert('Error al realizar el cobro rápido. Asegúrese de que la caja esté abierta.');
+    }
+  };
+
+  // Create Client
+  const handleCreateClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClientData.name) return;
+    addClient(newClientData);
+    setNewClientData({ name: '', email: '', phone: '', address: '' });
+    setShowNewClientModal(false);
+  };
+
+  // Re-print last ticket
+  const handleReprintLast = () => {
+    if (sales.length > 0) {
+      setCurrentSaleInvoice(sales[0]);
+      setShowInvoiceModal(true);
+    } else {
+      alert('No se registran ventas en la sesión actual.');
+    }
+  };
+
+  // Get active vertical design tokens
+  const getThemeStyles = () => {
+    switch (currentModule) {
+      case 'restaurant':
+        return {
+          primaryBg: 'bg-red-650 hover:bg-red-700',
+          accentBorder: 'border-red-900/40',
+          accentText: 'text-red-500',
+          totalPanel: 'bg-red-950/20 border-red-900/40 text-red-100',
+          buttonPrimary: 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/20',
+          cardHeader: 'bg-red-900/10 border-red-900/20 text-red-400',
+          gridAccent: 'bg-red-950/40 border-red-900/50 hover:bg-red-950/60'
+        };
+      case 'pharmacy':
+        return {
+          primaryBg: 'bg-emerald-650 hover:bg-emerald-700',
+          accentBorder: 'border-emerald-900/40',
+          accentText: 'text-emerald-500',
+          totalPanel: 'bg-emerald-950/20 border-emerald-900/40 text-emerald-100',
+          buttonPrimary: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-950/20',
+          cardHeader: 'bg-emerald-900/10 border-emerald-900/20 text-emerald-400',
+          gridAccent: 'bg-emerald-950/40 border-emerald-900/50 hover:bg-emerald-950/60'
+        };
+      case 'bakery':
+        return {
+          primaryBg: 'bg-amber-650 hover:bg-amber-700',
+          accentBorder: 'border-amber-900/40',
+          accentText: 'text-amber-500',
+          totalPanel: 'bg-amber-950/20 border-amber-900/40 text-amber-100',
+          buttonPrimary: 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-900/20',
+          cardHeader: 'bg-amber-900/10 border-amber-900/20 text-amber-400',
+          gridAccent: 'bg-amber-950/40 border-amber-900/50 hover:bg-amber-950/60'
+        };
+      case 'fruit':
+        return {
+          primaryBg: 'bg-green-650 hover:bg-green-700',
+          accentBorder: 'border-green-900/40',
+          accentText: 'text-green-500',
+          totalPanel: 'bg-green-950/20 border-green-900/40 text-green-100',
+          buttonPrimary: 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/20',
+          cardHeader: 'bg-green-900/10 border-green-900/20 text-green-400',
+          gridAccent: 'bg-green-950/40 border-green-900/50 hover:bg-green-950/60'
+        };
+      case 'business':
+        return {
+          primaryBg: 'bg-blue-650 hover:bg-blue-700',
+          accentBorder: 'border-blue-900/40',
+          accentText: 'text-blue-500',
+          totalPanel: 'bg-blue-950/20 border-blue-900/40 text-blue-100',
+          buttonPrimary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-950/20',
+          cardHeader: 'bg-blue-900/10 border-blue-900/20 text-blue-400',
+          gridAccent: 'bg-blue-950/40 border-blue-900/50 hover:bg-blue-950/60'
+        };
+      default:
+        return {
+          primaryBg: 'bg-zinc-800 hover:bg-zinc-700',
+          accentBorder: 'border-zinc-800',
+          accentText: 'text-zinc-400',
+          totalPanel: 'bg-zinc-900/50 border-zinc-800 text-zinc-100',
+          buttonPrimary: 'bg-zinc-800 hover:bg-zinc-700 text-white',
+          cardHeader: 'bg-zinc-800/10 border-zinc-800 text-zinc-400',
+          gridAccent: 'bg-zinc-900/40 border-zinc-800 hover:bg-zinc-900/60'
+        };
+    }
+  };
+
+  const style = getThemeStyles();
+
+  return (
+    <div className="w-full flex flex-col xl:flex-row gap-6">
+      
+      {/* LEFT AREA: SALES TICKET WORKBENCH */}
+      <div className="flex-1 bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between shadow-2xl backdrop-blur-md">
+        
+        <div>
+          {/* HEADER OPTIONS */}
+          <div className="flex flex-wrap gap-4 items-center justify-between mb-4 border-b border-zinc-900 pb-4">
+            
+            <div className="flex flex-wrap gap-3 items-center">
+              {/* Ticket No Dropdown */}
+              <div>
+                <label className="block text-[10px] text-zinc-500 font-semibold mb-0.5">TICKET / COMBO</label>
+                <select className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-white font-mono outline-none">
+                  <option>TICKET: T001 - 0044</option>
+                  <option>TICKET: T001 - 0045</option>
+                  <option>COTIZACIÓN / PRESU</option>
+                </select>
+              </div>
+
+              {/* Payment Method ALT+W */}
+              <div>
+                <label className="block text-[10px] text-zinc-500 font-semibold mb-0.5">FORMA DE PAGO [ALT+W]</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                  className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-white font-bold outline-none cursor-pointer"
+                >
+                  <option value="cash">💵 Efectivo</option>
+                  <option value="card">💳 Tarjeta Débito/Crédito</option>
+                  <option value="transfer">📲 Transferencia / QR</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* Client general */}
+              <div>
+                <label className="block text-[10px] text-zinc-500 font-semibold mb-0.5">CLIENTE</label>
+                <div className="flex gap-1.5">
+                  <select
+                    value={selectedClientId}
+                    onChange={(e) => setSelectedClientId(e.target.value)}
+                    className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-white font-semibold outline-none cursor-pointer min-w-[140px]"
+                  >
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={() => setShowNewClientModal(true)}
+                    className="p-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                    title="Nuevo Cliente [ALT+A]"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* DRUG WARNING ALERT */}
+          {drugWarnings.length > 0 && (
+            <div className="mb-4 p-3 bg-red-950/20 border border-red-900/60 rounded-xl flex flex-col gap-1.5 animate-pulse">
+              {drugWarnings.map((warn, i) => (
+                <div key={i} className="text-xs text-red-400 font-semibold flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 text-red-500 mt-0.5" />
+                  <span>{warn}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* SEARCH & CODE SCANNER SIMULATOR */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            {/* Standard catalog search */}
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-500">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar producto por nombre o categoría..."
+                className="w-full pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-zinc-700 transition-colors"
+              />
+            </div>
+
+            {/* Barcode scanner simulator */}
+            <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+              <input
+                type="text"
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                placeholder="Simular lector código barras + ENTER..."
+                className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-mono text-white placeholder-zinc-500 outline-none focus:border-zinc-700 transition-colors"
+              />
+              <button 
+                type="submit" 
+                className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all cursor-pointer ${style.primaryBg} text-white border-transparent`}
+              >
+                Escanear
+              </button>
+            </form>
+          </div>
+
+          {/* ACTIVE CART ITEMS TABLE */}
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-900 bg-zinc-950/20">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-zinc-900/50 border-b border-zinc-900 text-zinc-400 font-semibold uppercase tracking-wider">
+                  <th className="p-3">Producto</th>
+                  <th className="p-3 text-center">Disp.</th>
+                  <th className="p-3 text-center">Cant.</th>
+                  <th className="p-3 text-right">P. Venta</th>
+                  <th className="p-3 text-center">Desc. %</th>
+                  <th className="p-3 text-right">Importe</th>
+                  <th className="p-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900 font-medium">
+                {cartItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-zinc-500 font-mono">
+                      <ShoppingBag className="w-8 h-8 mx-auto mb-2 text-zinc-650 animate-bounce" />
+                      El carrito está vacío. Añade productos desde el catálogo o escanea.
+                    </td>
+                  </tr>
+                ) : (
+                  cartItems.map((item) => {
+                    const price = item.isGenericEquivalent ? (item.product.costPrice * 1.5) : item.product.salePrice;
+                    const multiplier = item.weight || item.quantity;
+                    const itemTotal = price * multiplier * (1 - item.discountPercentage / 100);
+
+                    return (
+                      <tr key={item.product.id} className="hover:bg-zinc-900/30 transition-colors">
+                        <td className="p-3">
+                          <div>
+                            <div className="font-semibold text-white flex items-center gap-1.5">
+                              {item.product.name}
+                              {item.selectedVariant && (
+                                <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-400 border border-zinc-700">
+                                  {item.selectedVariant}
+                                </span>
+                              )}
+                              {item.isGenericEquivalent && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-900/40 text-[10px] text-emerald-400">
+                                  Genérico sugerido
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-zinc-500 font-mono">
+                              SKU: {item.product.sku} | Barcode: {item.product.barcode}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center font-mono text-zinc-400">
+                          {item.product.stock}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {item.weight ? (
+                              <span className="font-mono font-bold text-white bg-zinc-900 border border-zinc-800 px-2 py-1 rounded">
+                                {item.weight.toFixed(3)} kg
+                              </span>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => updateCartQty(item.product.id, Math.max(1, item.quantity - 1))}
+                                  className="p-1 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer text-zinc-400 hover:text-white"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="w-8 text-center font-mono font-bold text-white">{item.quantity}</span>
+                                <button 
+                                  onClick={() => updateCartQty(item.product.id, item.quantity + 1)}
+                                  className="p-1 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer text-zinc-400 hover:text-white"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-mono text-white">
+                          S/ {price.toFixed(2)}
+                        </td>
+                        <td className="p-3 text-center font-mono">
+                          <input
+                            type="number"
+                            value={item.discountPercentage}
+                            min={0}
+                            max={100}
+                            onChange={(e) => {
+                              const disc = parseInt(e.target.value) || 0;
+                              // Update items discount
+                              const updatedCart = cartItems.map(i => 
+                                i.product.id === item.product.id ? { ...i, discountPercentage: Math.min(100, Math.max(0, disc)) } : i
+                              );
+                              usePOSStore.setState(state => ({
+                                activeCarts: { ...state.activeCarts, [currentModule]: updatedCart }
+                              }));
+                            }}
+                            className="w-12 text-center bg-zinc-900 border border-zinc-800 rounded px-1 py-0.5 text-xs text-white"
+                          />
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-white">
+                          S/ {itemTotal.toFixed(2)}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex justify-center gap-1.5">
+                            {currentModule === 'pharmacy' && item.product.genericEquivalent && !item.isGenericEquivalent && (
+                              <button
+                                onClick={() => handleSuggestGeneric(item)}
+                                className="px-2 py-1 rounded bg-emerald-950/40 border border-emerald-900/30 text-[10px] text-emerald-400 hover:bg-emerald-900/30 cursor-pointer transition-colors"
+                                title="Sugerir Genérico equivalente"
+                              >
+                                Ofrecer Genérico
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeFromCart(item.product.id)}
+                              className="p-1 bg-zinc-900 hover:bg-red-950/40 hover:text-red-400 border border-zinc-800 text-zinc-500 rounded cursor-pointer transition-colors"
+                              title="Quitar ítem"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        {/* BOTTOM METRICS PANEL & ACTION BUTTONS */}
+        <div className="mt-8 pt-5 border-t border-zinc-900">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
+            
+            {/* Action buttons list */}
+            <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <button 
+                onClick={handleReprintLast}
+                className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded-xl text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Printer className="w-4 h-4 text-zinc-500" />
+                <span>Reimprimir Recibo [ALT+O]</span>
+              </button>
+              <button 
+                onClick={() => {
+                  if (confirm('¿Desea limpiar el carrito actual?')) clearCart();
+                }}
+                className="px-3 py-2 bg-zinc-900 hover:bg-red-950/20 hover:border-red-900/40 border border-zinc-800 text-zinc-400 hover:text-red-400 rounded-xl text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Trash2 className="w-4 h-4 text-zinc-500" />
+                <span>Vaciar Carrito</span>
+              </button>
+              <button 
+                onClick={handleNormalCheckoutTrigger}
+                className={`col-span-2 sm:col-span-1 px-4 py-2 border rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${style.buttonPrimary} border-transparent shadow-lg`}
+              >
+                <DollarSign className="w-4 h-4" />
+                <span>Cobro Normal [ALT+C]</span>
+              </button>
+              <button 
+                onClick={handleQuickCheckout}
+                className="col-span-2 sm:col-span-3 px-4 py-3 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5 transition-all shadow-md shadow-indigo-600/20"
+              >
+                <RefreshCw className="w-4 h-4 animate-spin-slow" />
+                <span>COBRO RÁPIDO EFECTIVO [ALT+R]</span>
+              </button>
+            </div>
+
+            {/* Total balance display panel */}
+            <div className={`p-4 rounded-2xl border ${style.totalPanel} flex flex-col gap-1.5 shadow-inner`}>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-zinc-400">DESCUENTO GLOBAL (%):</span>
+                <input
+                  type="number"
+                  value={discountPercent}
+                  min={0}
+                  max={100}
+                  onChange={(e) => applyDiscount(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                  className="w-14 text-center bg-zinc-950 border border-zinc-800 rounded px-1.5 py-0.5 text-xs text-white font-mono"
+                />
+              </div>
+              <div className="flex justify-between items-center text-xs border-b border-zinc-900/40 pb-1.5">
+                <span className="text-zinc-400">SUBTOTAL:</span>
+                <span className="font-mono text-zinc-300">S/ {subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs border-b border-zinc-900/40 pb-1.5">
+                <span className="text-zinc-400">IGV (18%):</span>
+                <span className="font-mono text-zinc-300">S/ {tax.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-xs font-bold text-white">TOTAL:</span>
+                <span className="text-xl font-black font-mono tracking-tighter text-white">
+                  S/ {total.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* RIGHT AREA: CONTEXTUAL WORKFLOW PANELS (VERTICAL-SPECIFIC) */}
+      <div className="w-full xl:w-[480px] flex flex-col gap-6">
+        
+        {/* PANEL 1: SEATING GRID FOR RESTAURANT / BAKERY */}
+        {isTableEnv && (
+          <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md">
+            <h3 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+              <Layers className="w-4 h-4 text-cyan-500" />
+              <span>Plano de Mesas y Salones</span>
+            </h3>
+            
+            <div className="grid grid-cols-3 gap-3">
+              {((currentModule === 'restaurant' ? restaurantTables : bakeryTables) as TableState[]).map(table => {
+                const isSelected = selectedTableId === table.id;
+                
+                let btnColor = 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:bg-zinc-900';
+                let indicator = 'bg-zinc-650';
+
+                if (table.status === 'occupied') {
+                  btnColor = isSelected 
+                    ? 'bg-amber-950/40 border-amber-500/80 text-amber-200' 
+                    : 'bg-amber-950/20 border-amber-900/60 text-amber-400';
+                  indicator = 'bg-amber-500 animate-pulse';
+                } else if (table.status === 'billing') {
+                  btnColor = isSelected 
+                    ? 'bg-emerald-950/40 border-emerald-500/80 text-emerald-200' 
+                    : 'bg-emerald-950/20 border-emerald-900/60 text-emerald-400';
+                  indicator = 'bg-emerald-500 animate-pulse';
+                } else if (isSelected) {
+                  btnColor = 'bg-zinc-800 border-zinc-600 text-white';
+                }
+
+                return (
+                  <button
+                    key={table.id}
+                    onClick={() => selectTable(isSelected ? null : table.id)}
+                    className={`p-3 rounded-xl border flex flex-col justify-between items-start transition-all cursor-pointer duration-300 relative overflow-hidden ${btnColor}`}
+                  >
+                    <div className="flex justify-between w-full items-center">
+                      <span className="font-bold text-xs">{table.name}</span>
+                      <span className={`w-2 h-2 rounded-full ${indicator}`}></span>
+                    </div>
+                    
+                    <div className="mt-3 text-[10px] text-zinc-500 font-semibold font-mono">
+                      {table.status === 'free' ? 'Libre' : `Cart: ${table.cart.length} ítems`}
+                    </div>
+
+                    {table.guestsCount > 0 && (
+                      <span className="absolute top-1 right-5 text-[8px] bg-zinc-800 border border-zinc-700 px-1 rounded text-zinc-400">
+                        👥{table.guestsCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedTableId && (
+              <div className="mt-4 p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl flex flex-col gap-2.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-white">Configuración Mesa Activa:</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => updateTableStatus(selectedTableId!, 'occupied')}
+                      className="px-2 py-0.5 rounded bg-amber-950/30 border border-amber-900/50 text-[10px] text-amber-400 hover:bg-amber-900/30 cursor-pointer"
+                    >
+                      Ocupar
+                    </button>
+                    <button 
+                      onClick={() => updateTableStatus(selectedTableId!, 'billing')}
+                      className="px-2 py-0.5 rounded bg-emerald-950/30 border border-emerald-900/50 text-[10px] text-emerald-400 hover:bg-emerald-900/30 cursor-pointer"
+                    >
+                      Pide Cuenta
+                    </button>
+                    <button 
+                      onClick={() => updateTableStatus(selectedTableId!, 'free')}
+                      className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px] text-zinc-400 hover:bg-zinc-750 cursor-pointer"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs border-t border-zinc-850 pt-2">
+                  <span className="text-zinc-400">Nro Comensales:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    defaultValue={2}
+                    onChange={(e) => updateTableGuests(selectedTableId!, parseInt(e.target.value) || 0)}
+                    className="w-12 text-center bg-zinc-950 border border-zinc-800 rounded text-xs text-white"
+                  />
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* PANEL 2: PRODUCT QUICK LIST CATALOG GRID */}
+        <div className="flex-1 bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col overflow-hidden max-h-[600px]">
+          
+          <h3 className="text-xs font-bold text-zinc-400 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+            <ShoppingBag className="w-4 h-4 text-emerald-500" />
+            <span>Catálogo Rápido de Productos</span>
+          </h3>
+
+          <div className="grid grid-cols-2 gap-2.5 overflow-y-auto pr-1 flex-1">
+            {searchResults.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => handleAddItem(product)}
+                disabled={product.stock === 0}
+                className={`p-3 rounded-xl border text-left cursor-pointer transition-all duration-300 relative flex flex-col justify-between ${style.gridAccent} ${
+                  product.stock === 0 ? 'opacity-40 cursor-not-allowed' : ''
+                }`}
+              >
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-zinc-500 block mb-0.5">
+                    {product.category}
+                  </span>
+                  <strong className="text-xs text-white line-clamp-1">{product.name}</strong>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between w-full border-t border-zinc-900/60 pt-2">
+                  <span className="font-mono font-bold text-xs text-white">S/ {product.salePrice.toFixed(2)}</span>
+                  <span className={`text-[10px] font-bold font-mono ${product.stock <= product.minStock ? 'text-red-500' : 'text-zinc-500'}`}>
+                    Stock: {product.stock}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* CHECKOUT PAYMENT MODAL (ALT+C) */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-900 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-4">
+            
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-zinc-900 pb-3">
+              <DollarSign className="w-5 h-5 text-emerald-500" />
+              <span>Detalles del Cobro (Facturación)</span>
+            </h3>
+
+            <div className="flex flex-col gap-3 font-medium text-xs">
+              <div className="flex justify-between items-center text-zinc-400 bg-zinc-900/40 p-2.5 rounded-lg">
+                <span>Total a Pagar:</span>
+                <strong className="text-lg font-black text-white font-mono">S/ {total.toFixed(2)}</strong>
+              </div>
+
+              {/* Payment selector */}
+              <div>
+                <label className="block text-zinc-500 font-semibold mb-1">Método de Cobro</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['cash', 'card', 'transfer'] as const).map(method => (
+                    <button
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`p-3 border rounded-xl flex flex-col items-center gap-1 cursor-pointer transition-all ${
+                        paymentMethod === method
+                          ? 'border-cyan-500 bg-cyan-950/20 text-cyan-400'
+                          : 'border-zinc-800 bg-zinc-900/30 text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      {method === 'cash' && <DollarSign className="w-4 h-4" />}
+                      {method === 'card' && <CreditCard className="w-4 h-4" />}
+                      {method === 'transfer' && <RefreshCw className="w-4 h-4" />}
+                      <span className="text-[10px] font-bold uppercase capitalize">{method}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cash amount received */}
+              {paymentMethod === 'cash' && (
+                <div>
+                  <label className="block text-zinc-500 font-semibold mb-1">Efectivo Recibido (S/)</label>
+                  <input
+                    type="number"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono text-sm outline-none"
+                    placeholder="S/ 0.00"
+                    autoFocus
+                  />
+                  {parseFloat(cashReceived) >= total && (
+                    <div className="mt-2 text-emerald-400 font-semibold text-right">
+                      Vuelto: S/ {(parseFloat(cashReceived) - total).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                onClick={() => setShowCheckoutModal(false)}
+                className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCheckoutSubmit}
+                className="px-5 py-2 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg"
+              >
+                Confirmar Pago
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* TICKET / INVOICE PREVIEW MODAL */}
+      {showInvoiceModal && currentSaleInvoice && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-900 rounded-2xl max-w-sm w-full p-5 shadow-2xl flex flex-col gap-4">
+            
+            <h3 className="text-xs font-bold text-white flex items-center gap-1.5 border-b border-zinc-900 pb-3 justify-between">
+              <span className="flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-500" />
+                <span>COMPROBANTE ELECTRÓNICO</span>
+              </span>
+              <span className="font-mono text-[10px] text-zinc-500">{currentSaleInvoice.ticketNumber}</span>
+            </h3>
+
+            {/* Simulated thermal receipt paper layout */}
+            <div className="bg-white text-zinc-900 p-4 rounded-lg font-mono text-[10px] shadow-inner flex flex-col gap-2">
+              <div className="text-center border-b border-dashed border-zinc-400 pb-2">
+                <h4 className="font-black text-sm uppercase">POS MULTIRUBRO S.A.</h4>
+                <p>AV. GENERAL PAZ 1250 - LIMA</p>
+                <p>R.U.C.: 20123456789</p>
+                <p className="mt-1 font-bold">RUBRO: {currentSaleInvoice.storeType.toUpperCase()}</p>
+                {currentSaleInvoice.tableName && <p className="font-bold">MESA: {currentSaleInvoice.tableName}</p>}
+              </div>
+
+              <div className="border-b border-dashed border-zinc-400 pb-2">
+                <p>FECHA: {new Date(currentSaleInvoice.timestamp).toLocaleString()}</p>
+                <p>CAJERO: {currentSaleInvoice.cashier}</p>
+                <p>CLIENTE: {clients.find(c => c.id === selectedClientId)?.name || 'Cliente General'}</p>
+              </div>
+
+              <div className="border-b border-dashed border-zinc-400 pb-2">
+                <div className="flex justify-between font-bold border-b border-dashed border-zinc-300 pb-1 mb-1">
+                  <span>DESCRIPCION</span>
+                  <span>CANT x PREC</span>
+                  <span className="text-right">TOTAL</span>
+                </div>
+                {currentSaleInvoice.items.map((item, idx) => {
+                  const price = item.isGenericEquivalent ? (item.product.costPrice * 1.5) : item.product.salePrice;
+                  const mult = item.weight || item.quantity;
+                  const unit = item.weight ? 'kg' : 'un';
+                  return (
+                    <div key={idx} className="flex justify-between py-0.5">
+                      <span className="max-w-[120px] truncate">{item.product.name}</span>
+                      <span>{mult.toFixed(2)} {unit} x {price.toFixed(2)}</span>
+                      <span className="text-right">{(price * mult).toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col items-end gap-0.5 font-bold">
+                <div className="flex justify-between w-full">
+                  <span>SUBTOTAL:</span>
+                  <span>S/ {currentSaleInvoice.subtotal.toFixed(2)}</span>
+                </div>
+                {currentSaleInvoice.discount > 0 && (
+                  <div className="flex justify-between w-full text-red-650">
+                    <span>DESC:</span>
+                    <span>- S/ {currentSaleInvoice.discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between w-full">
+                  <span>IGV (18%):</span>
+                  <span>S/ {currentSaleInvoice.tax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between w-full text-sm font-black border-t border-dashed border-zinc-400 pt-1 mt-1">
+                  <span>TOTAL:</span>
+                  <span>S/ {currentSaleInvoice.total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="border-t border-dashed border-zinc-400 pt-2 text-center text-[8px] mt-2">
+                <p>FORMA DE PAGO: {currentSaleInvoice.paymentMethod.toUpperCase()}</p>
+                {currentSaleInvoice.paymentMethod === 'cash' && (
+                  <>
+                    <p>ENTREGADO: S/ {currentSaleInvoice.cashReceived.toFixed(2)}</p>
+                    <p>VUELTO: S/ {currentSaleInvoice.changeGiven.toFixed(2)}</p>
+                  </>
+                )}
+                <p className="mt-2 font-bold">*** GRACIAS POR SU COMPRA ***</p>
+              </div>
+
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowInvoiceModal(false)}
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={() => {
+                  alert('Imprimiendo recibo en impresora térmica de tickets...');
+                  setShowInvoiceModal(false);
+                }}
+                className={`px-5 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 ${style.buttonPrimary}`}
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimir Ticket</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* PRESCRIPTION CHECK MODAL (Pharmacy Controlled items) */}
+      {showPrescriptionModal && pendingControlledProduct && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-900 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-4">
+            
+            <h3 className="text-sm font-bold text-red-400 flex items-center gap-2 border-b border-zinc-900 pb-3">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <span>Verificación de Receta Médica</span>
+            </h3>
+
+            <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+              El producto <strong className="text-white">'{pendingControlledProduct.name}'</strong> es una sustancia controlada y requiere registrar la receta médica para autorizar la venta.
+            </p>
+
+            <div className="flex flex-col gap-3 font-semibold text-xs">
+              <div>
+                <label className="block text-zinc-500 mb-1">Nombre del Paciente</label>
+                <input
+                  type="text"
+                  value={prescriptionData.patientName}
+                  onChange={(e) => setPrescriptionData(prev => ({ ...prev, patientName: e.target.value }))}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                  placeholder="Ej. María Josefa"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-500 mb-1">ID / RUT Médico</label>
+                  <input
+                    type="text"
+                    value={prescriptionData.doctorId}
+                    onChange={(e) => setPrescriptionData(prev => ({ ...prev, doctorId: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. MD-4509"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-500 mb-1">Nro de Matrícula</label>
+                  <input
+                    type="text"
+                    value={prescriptionData.doctorLicense}
+                    onChange={(e) => setPrescriptionData(prev => ({ ...prev, doctorLicense: e.target.value }))}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                    placeholder="Ej. MAT-890-4"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                onClick={() => {
+                  setShowPrescriptionModal(false);
+                  setPendingControlledProduct(null);
+                }}
+                className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePrescriptionConfirm}
+                className="px-5 py-2 bg-red-650 hover:bg-red-750 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg"
+              >
+                Aprobar y Agregar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* WEIGHT SCALE SIMULATOR MODAL (Fruit Shop) */}
+      {showScaleModal && selectedFruit && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-900 rounded-2xl max-w-sm w-full p-5 shadow-2xl flex flex-col gap-4">
+            
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-zinc-900 pb-3">
+              <Layers className="w-5 h-5 text-emerald-500 animate-pulse" />
+              <span>Simulador de Báscula de Pesaje</span>
+            </h3>
+
+            <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 text-center flex flex-col gap-1.5 shadow-inner">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase">PRODUCTO A PESAR</span>
+              <strong className="text-sm text-white">{selectedFruit.name}</strong>
+              <span className="text-[11px] text-zinc-400 mt-1 font-mono">Precio por Kg: S/ {selectedFruit.salePrice.toFixed(2)}</span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-zinc-500 mb-1">PESO (KILOGRAMOS)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={fruitWeight}
+                  onChange={(e) => setFruitWeight(e.target.value)}
+                  className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white font-mono text-center text-xl font-bold outline-none"
+                  placeholder="0.000"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleSimulateScale}
+                  className="px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs cursor-pointer flex items-center justify-center gap-1 shadow-lg shadow-emerald-950/20"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Simular</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick weights list */}
+            <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-bold">
+              {['0.250', '0.500', '1.000', '2.000'].map(w => (
+                <button
+                  key={w}
+                  onClick={() => setFruitWeight(w)}
+                  className="p-2 border border-zinc-850 rounded-lg bg-zinc-900/30 text-zinc-400 hover:text-white hover:bg-zinc-900 cursor-pointer"
+                >
+                  {parseFloat(w).toFixed(2)} Kg
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3 justify-end mt-2 border-t border-zinc-900 pt-3">
+              <button
+                onClick={() => {
+                  setShowScaleModal(false);
+                  setSelectedFruit(null);
+                }}
+                className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleScaleConfirm}
+                className="px-5 py-2 bg-gradient-to-tr from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg shadow-emerald-950/20"
+              >
+                Confirmar Pesaje
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* NEW CLIENT MODAL */}
+      {showNewClientModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-zinc-900 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-4">
+            
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-zinc-900 pb-3">
+              <User className="w-5 h-5 text-cyan-500" />
+              <span>Agregar Nuevo Cliente [ALT+A]</span>
+            </h3>
+
+            <form onSubmit={handleCreateClient} className="flex flex-col gap-3 font-semibold text-xs">
+              <div>
+                <label className="block text-zinc-500 mb-1">Nombre Completo</label>
+                <input
+                  type="text"
+                  required
+                  value={newClientData.name}
+                  onChange={(e) => setNewClientData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                  placeholder="Ej. Juan Pérez"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-500 mb-1">Teléfono</label>
+                <input
+                  type="text"
+                  value={newClientData.phone}
+                  onChange={(e) => setNewClientData(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                  placeholder="Ej. +51 987 654 321"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-500 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newClientData.email}
+                  onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                  placeholder="Ej. juan@gmail.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-500 mb-1">Dirección de Envío</label>
+                <input
+                  type="text"
+                  value={newClientData.address}
+                  onChange={(e) => setNewClientData(prev => ({ ...prev, address: e.target.value }))}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-white outline-none"
+                  placeholder="Ej. Av. Larco 450, Miraflores"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewClientModal(false)}
+                  className="px-4 py-2 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg"
+                >
+                  Guardar Cliente
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
