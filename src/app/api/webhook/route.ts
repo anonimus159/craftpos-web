@@ -3,11 +3,11 @@ import Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/supabase';
 import { Resend } from 'resend';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
   apiVersion: '2026-06-24.dahlia' as any,
 });
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key');
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
