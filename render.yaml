@@ -2,6 +2,7 @@ services:
   - type: web
     name: craftpos-web
     env: node
+    plan: free
     buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm run start
     envVars:
