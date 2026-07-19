@@ -19,7 +19,7 @@ import ComprasModule from '../components/ComprasModule';
 import KardexModule from '../components/KardexModule';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ShieldAlert, Check, Eye, EyeOff, KeyRound, ArrowLeft, Download, RefreshCw } from 'lucide-react';
-import logoCodecraft from '../../public/logo_codecraft.png';
+
 
 export default function Home() {
   const { 
@@ -569,7 +569,7 @@ export default function Home() {
             {/* CODECRAFT LOGO IMAGE */}
             <div className="relative select-none flex items-center justify-center p-2 mb-2 max-w-[220px]">
               <img 
-                src={logoCodecraft.src} 
+                src="/logo_sin_nombre.png" 
                 alt="CodeCraft Logo" 
                 className="w-full h-auto object-contain drop-shadow-sm" 
               />
@@ -1048,8 +1048,8 @@ export default function Home() {
           <div className="flex flex-col items-center mb-6">
             <div className="relative select-none flex items-center justify-center p-2 mb-3 max-w-[160px]">
               <img 
-                src="/logo_codecraft.png" 
-                alt="CraftPOS Logo" 
+                src="/logo_sin_nombre.png" 
+                alt="Codecraft Logo" 
                 className="w-full h-auto object-contain" 
               />
             </div>

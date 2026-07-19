@@ -135,7 +135,7 @@ export default function HubView({ setActiveTab }: HubViewProps) {
         <div className="lg:col-span-2 bg-[#FFFCEB] border-[3px] border-black rounded-3xl flex flex-col justify-center items-center px-6 py-4 text-center shadow-[5px_5px_0px_#000]">
           <div className="select-none flex flex-col items-center justify-center w-full">
             <img
-              src="/craftpos_c_only.png"
+              src="/logo_sin_nombre.png"
               alt="CraftPOS Logo"
               className="w-auto h-auto object-contain drop-shadow-md"
               style={{ maxHeight: '180px', mixBlendMode: 'multiply' }}

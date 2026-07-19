@@ -92,7 +92,7 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
             />
           ) : (
             <img
-              src="/logo_codecraft.png"
+              src="/logo_sin_nombre.png"
               alt="CraftPOS Logo"
               className="w-9 h-9 object-contain rounded-xl cursor-pointer"
               onClick={() => setModule('hub')}
