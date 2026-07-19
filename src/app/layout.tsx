@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "CraftPOS — Sistema Punto de Venta",
   description: "Sistema de Punto de Venta todo-en-Uno: Restaurante, Farmacia, Panadería, Heladería, Negocio General.",
   icons: {
-    icon: "/craftpos_icon.ico",
+    icon: "/logo_sin_nombre.png",
     apple: "/logo_sin_nombre.png",
   },
 };
