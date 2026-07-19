@@ -77,12 +77,10 @@ export default function PromoLanding() {
 
   const handleScan = (product: typeof mockProducts[0]) => {
     if (isScanning) return;
-    setSelectedProduct(product);
     setIsScanning(true);
     
     setTimeout(() => {
       setIsScanning(false);
-      setShowBeep(true);
       playBeep();
       setSimulatedModule(product.module);
       setSimulatedCart(prev => {
@@ -96,12 +94,7 @@ export default function PromoLanding() {
         }
         return [...prev, { product, quantity: 1 }];
       });
-
-      setTimeout(() => {
-        setShowBeep(false);
-      }, 1000);
-      
-    }, 1200);
+    }, 150);
   };
 
   const clearSimulatedCart = () => {
@@ -320,21 +313,17 @@ export default function PromoLanding() {
             </h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               {mockProducts.map((p) => (
-                <div key={p.id} className="bg-white p-5 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div style={{ backgroundColor: p.color }} className="w-12 h-12 rounded-xl border-[2px] border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                      <p.icon className="w-6 h-6 text-black" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg">{p.name}</h4>
-                    </div>
+                <button key={p.id} onClick={() => handleScan(p)} disabled={isScanning} className="bg-white p-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] flex flex-col items-center gap-3 hover:translate-y-1 hover:shadow-[2px_2px_0px_#000] transition-all active:translate-y-2 active:shadow-none cursor-pointer">
+                  <div style={{ backgroundColor: p.color }} className="w-16 h-16 rounded-xl border-[2px] border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                    <p.icon className="w-8 h-8 text-black" />
                   </div>
-                  <button onClick={() => handleScan(p)} disabled={isScanning} className="bg-[#D92B75] text-white font-bold px-4 py-2.5 rounded-xl border-[2px] border-black text-sm">
-                    Escanear
-                  </button>
-                </div>
+                  <div className="text-center w-full">
+                    <h4 className="font-bold text-sm leading-tight truncate">{p.name}</h4>
+                    <span className="font-black text-[#D92B75] text-lg">${p.price.toFixed(2)}</span>
+                  </div>
+                </button>
               ))}
             </div>
             
@@ -346,40 +335,48 @@ export default function PromoLanding() {
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
-                <span className="font-bold font-mono">Terminal Caja #1</span>
+                <div className="flex items-center gap-4">
+                  <button onClick={clearSimulatedCart} className="text-xs bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full font-bold transition-colors">Vaciar Caja</button>
+                  <span className="font-bold font-mono">Terminal Caja #1</span>
+                </div>
               </div>
-              <div className="flex-1 bg-gray-50 p-6 flex flex-col items-center justify-center relative">
-                {isScanning ? (
-                  <div className="animate-pulse flex flex-col items-center">
-                    <Barcode className="w-20 h-20 text-gray-300 mb-4" />
-                    <p className="text-lg font-bold text-gray-500">Escaneando...</p>
-                  </div>
-                ) : selectedProduct ? (
-                  <div className="w-full max-w-sm bg-white p-6 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] animate-bounce-short">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div style={{ backgroundColor: selectedProduct.color }} className="w-16 h-16 rounded-xl border-[2px] border-black flex items-center justify-center">
-                        <selectedProduct.icon className="w-8 h-8 text-black" />
-                      </div>
-                      <div>
-                        <h4 className="font-black text-xl">{selectedProduct.name}</h4>
-                        <p className="font-mono text-gray-500 font-bold">Ref: {selectedProduct.barcode}</p>
-                      </div>
+              <div className="flex-1 bg-gray-50 flex flex-col relative">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {simulatedCart.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center opacity-50">
+                      <Barcode className="w-16 h-16 text-gray-400 mb-2" />
+                      <p className="font-bold text-gray-500 text-center">Toca un producto<br/>para agregarlo</p>
                     </div>
-                    <div className="flex justify-between items-end pt-4 border-t-2 border-dashed border-gray-300">
-                      <span className="font-bold text-gray-500">Total</span>
-                      <span className="text-3xl font-black">${selectedProduct.price.toFixed(2)}</span>
-                    </div>
+                  ) : (
+                    simulatedCart.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border-2 border-gray-200 shadow-sm animate-fade-in-up">
+                        <div className="flex items-center gap-3">
+                          <span className="font-black text-lg w-6 text-gray-700">{item.quantity}x</span>
+                          <span className="font-bold text-sm text-gray-900">{item.product.name}</span>
+                        </div>
+                        <span className="font-black text-gray-900">${(item.product.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                <div className="bg-white border-t-[3px] border-black p-6 z-10 relative">
+                  <div className="flex justify-between items-end mb-4">
+                    <span className="font-bold text-gray-500 text-lg">Total a cobrar</span>
+                    <span className="text-4xl font-black text-[#D92B75]">
+                      ${simulatedCart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0).toFixed(2)}
+                    </span>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center opacity-50">
-                    <Barcode className="w-20 h-20 text-gray-300 mb-4" />
-                    <p className="text-lg font-bold text-gray-400 text-center">Esperando lectura<br/>de código de barras</p>
-                  </div>
-                )}
-
-                {/* Laser animation overlay */}
+                  <button className="w-full bg-[#34D399] text-black font-black py-3 rounded-xl border-[3px] border-black shadow-[4px_4px_0px_#000] hover:translate-y-1 hover:shadow-[2px_2px_0px_#000] transition-all active:translate-y-2 active:shadow-none text-xl">
+                    COBRAR
+                  </button>
+                </div>
+                
+                {/* Scanner overlay effect */}
                 {isScanning && (
-                  <div className="absolute top-1/2 left-0 right-0 h-1 bg-red-500 shadow-[0_0_15px_#ef4444] animate-scan-laser"></div>
+                  <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
+                    <div className="w-full h-1 bg-red-500 shadow-[0_0_20px_#ef4444] animate-scan-laser"></div>
+                  </div>
                 )}
               </div>
             </div>
