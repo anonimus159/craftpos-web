@@ -87,7 +87,9 @@ export default function Home() {
   const isTrialActive = trialDaysLeft > 0;
 
   useEffect(() => {
-    usePOSStore.getState().initStore();
+    if (!usePOSStore.getState().isDemoMode) {
+      usePOSStore.getState().initStore();
+    }
   }, []);
 
   // ============================================================
