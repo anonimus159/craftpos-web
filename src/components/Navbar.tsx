@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import DemoLockModal from './DemoLockModal';
 import { usePOSStore } from '../store/store';
 import { StoreType } from '../types/types';
 import { 
@@ -15,14 +16,27 @@ interface NavbarProps {
 export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
   const { 
     currentModule, setModule, 
-    appConfig, activeSession, logout
+    appConfig, activeSession, logout,
+    isDemoMode, exitDemoMode
   } = usePOSStore(s => ({
     currentModule: s.currentModule,
     setModule: s.setModule,
     appConfig: s.appConfig,
     activeSession: s.activeSession,
     logout: s.logout,
+    isDemoMode: s.isDemoMode,
+    exitDemoMode: s.exitDemoMode,
   }));
+
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
+  const handleTabClick = (tabId: string) => {
+    if (isDemoMode && (tabId === 'configuracion' || tabId === 'usuarios')) {
+      setShowDemoModal(true);
+    } else {
+      setActiveTab(tabId);
+    }
+  };
 
   const getThemeColor = () => {
     switch (currentModule) {
@@ -120,7 +134,7 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
         {currentModule !== 'hub' && (
           <nav className="flex flex-wrap gap-1.5 justify-center">
             {tabs.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={getActiveTabClass(tab.id)}>
+              <button key={tab.id} onClick={() => handleTabClick(tab.id)} className={getActiveTabClass(tab.id)}>
                 {tab.icon}
                 {tab.label}
                 {tab.shortcut && <span className="text-[9px] opacity-60">[{tab.shortcut}]</span>}
@@ -156,16 +170,20 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
           )}
 
           <button
-            onClick={() => logout()}
+            onClick={() => isDemoMode ? exitDemoMode() : logout()}
             className="px-3 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
-            title="Cerrar sesión"
+            title={isDemoMode ? "Salir de Demo" : "Cerrar sesión"}
           >
             <LogOut size={13} />
-            Salir
+            {isDemoMode ? "Salir de Demo" : "Salir"}
           </button>
         </div>
 
       </div>
+      
+      {showDemoModal && (
+        <DemoLockModal onClose={() => setShowDemoModal(false)} />
+      )}
     </header>
   );
 }

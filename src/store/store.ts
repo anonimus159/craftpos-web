@@ -46,6 +46,8 @@ interface POSState {
   updateAppConfig: (config: Partial<AppConfig>) => void;
   login: (username: string, password: string) => { success: boolean; message: string };
   logout: () => void;
+  isDemoMode: boolean;
+  exitDemoMode: () => void;
   resetPassword: (username: string, email: string, taxId: string, newPassword: string) => { success: boolean; message: string };
   recoverUsername: (email: string, taxId: string) => { success: boolean; message: string; usernames?: string[] };
   initStore: () => Promise<void>;
@@ -374,6 +376,7 @@ export const generateLicenseKey = (): string => {
 export const usePOSStore = create<POSState>((set, get) => ({
   isLicensed: typeof window !== 'undefined' ? localStorage.getItem('pos_is_licensed') === 'true' : false,
   licenseKey: typeof window !== 'undefined' ? localStorage.getItem('pos_license_key') || '' : '',
+  isDemoMode: typeof window !== 'undefined' ? window.location.search.includes('demo=true') : false,
 
   licensedModules: (() => {
     if (typeof window !== 'undefined') {
@@ -723,6 +726,13 @@ export const usePOSStore = create<POSState>((set, get) => ({
     const user = get().activeSession;
     get().addLog(`Cierre de sesión: ${user?.fullName || 'Usuario'}`, 'Seguridad');
     set({ activeSession: null });
+  },
+
+  exitDemoMode: () => {
+    set({ activeSession: null, isDemoMode: false });
+    if (typeof window !== 'undefined') {
+      window.location.href = '/promo';
+    }
   },
 
   resetPassword: (username, email, taxId, newPassword) => {

@@ -99,7 +99,7 @@ function ModuleButton({
 
 // ─── Main component ───────────────────────────────────────────
 export default function HubView({ setActiveTab }: HubViewProps) {
-  const { setModule, operatorName, userRole, logout } = usePOSStore();
+  const { setModule, operatorName, userRole, logout, isDemoMode, exitDemoMode } = usePOSStore();
   const [showAbout, setShowAbout] = useState(false);
   const goTo = (id: StoreType) => { setModule(id); setActiveTab('ventas'); };
 
@@ -113,9 +113,9 @@ export default function HubView({ setActiveTab }: HubViewProps) {
           Punto de Venta
         </h1>
         <button
-          onClick={() => logout()}
+          onClick={() => isDemoMode ? exitDemoMode() : logout()}
           className="p-2.5 rounded-2xl bg-white hover:bg-rose-50 border-[2.5px] border-black text-rose-600 shadow-[3px_3px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-pointer"
-          title="Cerrar Sesión"
+          title={isDemoMode ? "Salir de Demo" : "Cerrar Sesión"}
         >
           <Power className="w-5 h-5 stroke-[2.5]" />
         </button>

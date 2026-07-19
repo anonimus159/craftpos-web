@@ -80,6 +80,7 @@ export default function PromoLanding() {
 
   const startLiveDemo = () => {
     usePOSStore.setState({
+      isDemoMode: true,
       appConfig: {
         isConfigured: true,
         companyName: "Demo CraftPOS",
