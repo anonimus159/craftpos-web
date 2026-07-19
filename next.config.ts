@@ -5,6 +5,17 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  ...(process.env.RENDER && {
+    async redirects() {
+      return [
+        {
+          source: '/',
+          destination: '/promo',
+          permanent: false,
+        },
+      ];
+    },
+  }),
 };
 
 export default nextConfig;
