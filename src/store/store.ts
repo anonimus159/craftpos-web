@@ -374,11 +374,14 @@ export const generateLicenseKey = (): string => {
 };
 
 export const usePOSStore = create<POSState>((set, get) => ({
-  isLicensed: typeof window !== 'undefined' ? localStorage.getItem('pos_is_licensed') === 'true' : false,
+  isLicensed: (typeof window !== 'undefined' && window.location.search.includes('demo=true')) ? true : (typeof window !== 'undefined' ? localStorage.getItem('pos_is_licensed') === 'true' : false),
   licenseKey: typeof window !== 'undefined' ? localStorage.getItem('pos_license_key') || '' : '',
   isDemoMode: typeof window !== 'undefined' ? window.location.search.includes('demo=true') : false,
 
   licensedModules: (() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('demo=true')) {
+      return { restaurant: true, pharmacy: true, bakery: true, fruit: true, business: true, hub: true };
+    }
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('pos_licensed_modules');
       if (stored) {
@@ -518,6 +521,30 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
   // App Configuration (Onboarding state)
   appConfig: (() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('demo=true')) {
+      return {
+        isConfigured: true,
+        companyName: "Demo CraftPOS",
+        taxIdType: "NIT",
+        taxId: "123456789-0",
+        tagLine: "Entorno de Prueba",
+        phone: "+1 234 567 890",
+        email: "demo@craftpos.com",
+        address: "Av. Principal #123, Ciudad",
+        currency: "USD",
+        currencySymbol: "$",
+        country: "CO",
+        taxEnabled: true,
+        taxRate: 19,
+        cashierName: "Caja Principal",
+        printFormat: "80mm",
+        ticketFont: "monospace",
+        ticketShowLogo: false,
+        ticketCustomText: "Gracias por su compra",
+        ticketShowBusinessData: true,
+        onboardingDate: new Date().toISOString(),
+      };
+    }
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('pos_app_config');
       if (stored) {
@@ -604,7 +631,27 @@ export const usePOSStore = create<POSState>((set, get) => ({
   })(),
 
   // Active Session
-  activeSession: null,
+  activeSession: (typeof window !== 'undefined' && window.location.search.includes('demo=true')) ? {
+    id: "demo_admin",
+    username: "admin",
+    passwordHash: "demo",
+    email: "admin@demo.com",
+    role: "Admin",
+    fullName: "Administrador Demo",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    permissions: {
+      ventas: { access: true, nuevo: true, cobrar: true, descuentos: true, cotizaciones: true },
+      inventario: { access: true, entradas: true, salidas: true, ajustes: true, exportar: true },
+      caja: { access: true, apertura: true, cierre: true, movimientos: true, reportes: true },
+      kardex: { access: true },
+      corte: { access: true },
+      reporteVentas: { access: true },
+      usuarios: { access: true },
+      compras: { access: true },
+      otros: { access: true },
+    }
+  } : null,
 
   // Auth Actions
   completeOnboarding: (config, adminUser) => {
