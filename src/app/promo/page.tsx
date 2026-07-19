@@ -108,7 +108,7 @@ export default function PromoLanding() {
         passwordHash: "demo",
         email: "admin@demo.com",
         taxId: "12345678",
-        role: "admin",
+        role: "Admin",
         fullName: "Administrador Demo",
         status: "active",
         createdAt: new Date().toISOString(),
@@ -116,7 +116,7 @@ export default function PromoLanding() {
            ventas: true, inventario: true, caja: true, clientes: true, cotizaciones: true, reportes: true, seguridad: true, negocio: true, usuarios: true, compras: true, kardex: true
         }
       },
-      userRole: 'admin',
+      userRole: 'Admin',
       licensedModules: ['restaurante', 'farmacia', 'panaderia', 'heladeria', 'negocio_general'],
       currentModule: 'hub',
     });
