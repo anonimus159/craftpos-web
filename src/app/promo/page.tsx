@@ -107,17 +107,31 @@ export default function PromoLanding() {
         username: "admin",
         passwordHash: "demo",
         email: "admin@demo.com",
-        taxId: "12345678",
         role: "Admin",
         fullName: "Administrador Demo",
-        status: "active",
+        isActive: true,
         createdAt: new Date().toISOString(),
         permissions: {
-           ventas: true, inventario: true, caja: true, clientes: true, cotizaciones: true, reportes: true, seguridad: true, negocio: true, usuarios: true, compras: true, kardex: true
+          ventas: { access: true, nuevo: true, cobrar: true, descuentos: true, cotizaciones: true },
+          inventario: { access: true, entradas: true, salidas: true, ajustes: true, exportar: true },
+          caja: { access: true, apertura: true, cierre: true, movimientos: true, reportes: true },
+          kardex: { access: true },
+          corte: { access: true },
+          reporteVentas: { access: true },
+          usuarios: { access: true },
+          compras: { access: true },
+          otros: { access: true },
         }
       },
       userRole: 'Admin',
-      licensedModules: ['restaurante', 'farmacia', 'panaderia', 'heladeria', 'negocio_general'],
+      licensedModules: {
+        hub: true,
+        restaurant: true,
+        pharmacy: true,
+        bakery: true,
+        fruit: true,
+        business: true
+      },
       currentModule: 'hub',
     });
     router.push('/?demo=true');
