@@ -14,7 +14,10 @@ import {
   IceCreamCone,
   Barcode,
   Volume2,
-  Download
+  Download,
+  ArrowRight,
+  Lock,
+  MonitorPlay
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -75,26 +78,40 @@ export default function PromoLanding() {
     }
   };
 
-  const handleScan = (product: typeof mockProducts[0]) => {
-    if (isScanning) return;
-    setIsScanning(true);
-    
-    setTimeout(() => {
-      setIsScanning(false);
-      playBeep();
-      setSimulatedModule(product.module);
-      setSimulatedCart(prev => {
-        const existing = prev.find(item => item.product.id === product.id);
-        if (existing) {
-          return prev.map(item => 
-            item.product.id === product.id 
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          );
+  const startLiveDemo = () => {
+    usePOSStore.setState({
+      appConfig: {
+        isConfigured: true,
+        businessName: "Demo CraftPOS",
+        businessIdType: "NIT",
+        businessId: "123456789-0",
+        slogan: "Entorno de Prueba",
+        phone: "+1 234 567 890",
+        email: "demo@craftpos.com",
+        address: "Demo 123",
+        cashierName: "Caja Principal",
+        printerIP: "",
+        onboardingDate: new Date().toISOString(),
+      },
+      activeSession: {
+        id: "demo_admin",
+        username: "admin",
+        passwordHash: "demo",
+        email: "admin@demo.com",
+        taxId: "12345678",
+        role: "admin",
+        fullName: "Administrador Demo",
+        status: "active",
+        createdAt: new Date().toISOString(),
+        permissions: {
+           ventas: true, inventario: true, caja: true, clientes: true, cotizaciones: true, reportes: true, seguridad: true, negocio: true, usuarios: true, compras: true, kardex: true
         }
-        return [...prev, { product, quantity: 1 }];
-      });
-    }, 150);
+      },
+      userRole: 'admin',
+      licensedModules: ['restaurante', 'farmacia', 'panaderia', 'heladeria', 'negocio_general'],
+      currentModule: 'hub',
+    });
+    router.push('/?demo=true');
   };
 
   const clearSimulatedCart = () => {
@@ -305,81 +322,55 @@ export default function PromoLanding() {
         </div>
       </section>
 
-      <section id="demo" className="py-20 px-6 bg-[#FAF6EE]">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className={`text-4xl md:text-5xl font-black mb-4 ${fredoka.className}`}>
-              Simula un Escaneo en Vivo
-            </h2>
+      <section id="demo" className="py-24 px-6 bg-[#FAF6EE] relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute top-10 left-10 w-32 h-32 bg-[#D92B75]/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-10 right-10 w-48 h-48 bg-orange-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="max-w-6xl mx-auto text-center relative z-10">
+          <h2 className={`text-4xl md:text-6xl font-black mb-6 ${fredoka.className}`}>
+            No lo imagines, Pruébalo en Vivo.
+          </h2>
+          <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto font-medium">
+            Ingresa ahora mismo al sistema real de CraftPOS. Explora los módulos, simula ventas y descubre por qué es el sistema más fácil e intuitivo del mercado.
+          </p>
+          
+          <div className="relative inline-block group mb-20">
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#D92B75] to-orange-400 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+            <button 
+              onClick={startLiveDemo}
+              className="relative bg-black text-white px-10 py-5 rounded-xl font-black text-2xl md:text-3xl border-[4px] border-black shadow-[8px_8px_0px_#D92B75] hover:translate-y-1 hover:shadow-[4px_4px_0px_#D92B75] active:translate-y-2 active:shadow-none transition-all flex items-center gap-4"
+            >
+              <span>INICIAR ENTORNO DE PRUEBA REAL</span>
+              <ArrowRight className="w-8 h-8 md:w-10 md:h-10" />
+            </button>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="grid grid-cols-2 gap-4">
-              {mockProducts.map((p) => (
-                <button key={p.id} onClick={() => handleScan(p)} disabled={isScanning} className="bg-white p-4 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] flex flex-col items-center gap-3 hover:translate-y-1 hover:shadow-[2px_2px_0px_#000] transition-all active:translate-y-2 active:shadow-none cursor-pointer">
-                  <div style={{ backgroundColor: p.color }} className="w-16 h-16 rounded-xl border-[2px] border-black flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                    <p.icon className="w-8 h-8 text-black" />
-                  </div>
-                  <div className="text-center w-full">
-                    <h4 className="font-bold text-sm leading-tight truncate">{p.name}</h4>
-                    <span className="font-black text-[#D92B75] text-lg">${p.price.toFixed(2)}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            
-            {/* Right Side: Mock POS Interface */}
-            <div className="bg-white rounded-3xl border-[4px] border-black shadow-[8px_8px_0px_#000] overflow-hidden flex flex-col h-[500px]">
-              <div className="bg-black text-white px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          
+          <div 
+            onClick={startLiveDemo}
+            className="w-full max-w-5xl mx-auto rounded-3xl overflow-hidden border-[6px] border-black shadow-[16px_16px_0px_#000] relative group cursor-pointer bg-white"
+          >
+             {/* Mac-like header bar for the screenshot */}
+             <div className="bg-gray-100 border-b-[3px] border-black px-4 py-3 flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500 border border-black"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-400 border border-black"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500 border border-black"></div>
+                <div className="mx-auto bg-white px-4 py-1 rounded-md border-2 border-gray-300 text-xs font-bold text-gray-500 flex items-center gap-2">
+                  <Lock className="w-3 h-3" />
+                  <span>craftpos-web.onrender.com/?demo=true</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <button onClick={clearSimulatedCart} className="text-xs bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full font-bold transition-colors">Vaciar Caja</button>
-                  <span className="font-bold font-mono">Terminal Caja #1</span>
-                </div>
-              </div>
-              <div className="flex-1 bg-gray-50 flex flex-col relative">
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {simulatedCart.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center opacity-50">
-                      <Barcode className="w-16 h-16 text-gray-400 mb-2" />
-                      <p className="font-bold text-gray-500 text-center">Toca un producto<br/>para agregarlo</p>
-                    </div>
-                  ) : (
-                    simulatedCart.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border-2 border-gray-200 shadow-sm animate-fade-in-up">
-                        <div className="flex items-center gap-3">
-                          <span className="font-black text-lg w-6 text-gray-700">{item.quantity}x</span>
-                          <span className="font-bold text-sm text-gray-900">{item.product.name}</span>
-                        </div>
-                        <span className="font-black text-gray-900">${(item.product.price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-                
-                <div className="bg-white border-t-[3px] border-black p-6 z-10 relative">
-                  <div className="flex justify-between items-end mb-4">
-                    <span className="font-bold text-gray-500 text-lg">Total a cobrar</span>
-                    <span className="text-4xl font-black text-[#D92B75]">
-                      ${simulatedCart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0).toFixed(2)}
-                    </span>
-                  </div>
-                  <button className="w-full bg-[#34D399] text-black font-black py-3 rounded-xl border-[3px] border-black shadow-[4px_4px_0px_#000] hover:translate-y-1 hover:shadow-[2px_2px_0px_#000] transition-all active:translate-y-2 active:shadow-none text-xl">
-                    COBRAR
-                  </button>
-                </div>
-                
-                {/* Scanner overlay effect */}
-                {isScanning && (
-                  <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
-                    <div className="w-full h-1 bg-red-500 shadow-[0_0_20px_#ef4444] animate-scan-laser"></div>
-                  </div>
-                )}
-              </div>
-            </div>
+             </div>
+             
+             {/* Using the banner as the mock screenshot */}
+             <div className="relative">
+               <img src="/craftpos_promo_banner.png" alt="Pantallazo del Sistema" className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                 <div className="bg-white text-black font-black px-8 py-4 rounded-2xl text-2xl shadow-[6px_6px_0px_#D92B75] flex items-center gap-3 border-[4px] border-black transform translate-y-4 group-hover:translate-y-0 transition-all">
+                   <MonitorPlay className="w-8 h-8" />
+                   Cargar Sistema Completo
+                 </div>
+               </div>
+             </div>
           </div>
         </div>
       </section>

@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
       return [
         {
           source: '/',
+          missing: [
+            {
+              type: 'query',
+              key: 'demo',
+              value: 'true',
+            },
+          ],
           destination: '/promo',
           permanent: false,
         },
