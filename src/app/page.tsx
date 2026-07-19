@@ -29,7 +29,7 @@ export default function Home() {
     appConfig, activeSession,
     login, resetPassword, recoverUsername,
     licensedModules, moduleLicenseKeys, activateModuleLicense, logout,
-    products, addToCart
+    products, addToCart, isDemoMode
   } = usePOSStore();
 
   const [serverTrialDaysLeft, setServerTrialDaysLeft] = useState<number | null>(null);
@@ -139,6 +139,13 @@ export default function Home() {
   const [isInstallerMode, setIsInstallerMode] = useState(false);
   const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'success' | 'failed'>('idle');
 
+  // Automatically log in if activeSession is injected (e.g., Demo Mode)
+  useEffect(() => {
+    if (activeSession) {
+      setIsLoggedIn(true);
+    }
+  }, [activeSession]);
+
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined') {
@@ -170,11 +177,11 @@ export default function Home() {
 
   // Automatically reset login mode and close session on Hub
   useEffect(() => {
-    if (currentModule === 'hub') {
+    if (currentModule === 'hub' && !isDemoMode) {
       setIsLoggedIn(false);
       logout();
     }
-  }, [currentModule, logout]);
+  }, [currentModule, logout, isDemoMode]);
 
   // Monitor Global Barcode Scanner Input
   useEffect(() => {
