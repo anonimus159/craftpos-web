@@ -92,6 +92,7 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
   }[currentModule] || 'Sistema';
 
   return (
+    <>
     <header className={`sticky top-0 z-40 w-full border-b backdrop-blur-md bg-gradient-to-r ${getThemeColor()} transition-colors duration-500`}>
       <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-col lg:flex-row gap-3 items-center justify-between">
         
@@ -180,10 +181,11 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
         </div>
 
       </div>
-      
-      {showDemoModal && (
-        <DemoLockModal onClose={() => setShowDemoModal(false)} />
-      )}
     </header>
+    
+    {showDemoModal && (
+      <DemoLockModal onClose={() => setShowDemoModal(false)} />
+    )}
+    </>
   );
 }
