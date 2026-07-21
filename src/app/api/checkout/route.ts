@@ -4,14 +4,14 @@ const PAYPAL_API_BASE = (process.env.PAYPAL_API_URL || 'https://api-m.sandbox.pa
 const PAYPAL_CLIENT_ID = (process.env.PAYPAL_CLIENT_ID || '').trim();
 const PAYPAL_CLIENT_SECRET = (process.env.PAYPAL_CLIENT_SECRET || '').trim();
 
-// Definimos los precios (en centavos, como estaba antes para mantener compatibilidad)
+// Definimos los precios (en centavos USD)
 const PRICES: Record<string, number> = {
-  restaurante: 1200, // $12.00
-  farmacia: 1500,    // $15.00
-  panaderia: 1200,   // $12.00
-  heladeria: 1800,    // $18.00
-  almacen: 2000,     // $20.00
-  all: 4900,         // $49.00 (Promo todos los módulos)
+  restaurante: 7500, // $75.00
+  farmacia: 7500,    // $75.00
+  panaderia: 7500,   // $75.00
+  heladeria: 7500,    // $75.00
+  almacen: 7500,     // $75.00
+  all: 13000,         // $130.00 (Promo todos los módulos)
 };
 
 const NAMES: Record<string, string> = {
