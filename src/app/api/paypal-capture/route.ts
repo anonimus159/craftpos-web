@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { Resend } from 'resend';
 
-const PAYPAL_API_BASE = process.env.PAYPAL_API_URL || 'https://api-m.sandbox.paypal.com';
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
+const PAYPAL_API_BASE = (process.env.PAYPAL_API_URL || 'https://api-m.sandbox.paypal.com').trim();
+const PAYPAL_CLIENT_ID = (process.env.PAYPAL_CLIENT_ID || '').trim();
+const PAYPAL_CLIENT_SECRET = (process.env.PAYPAL_CLIENT_SECRET || '').trim();
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key');
 
