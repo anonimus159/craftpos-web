@@ -49,25 +49,20 @@
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
-      "icon": "public/craftpos_icon.ico"
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "CraftPOS",
-      "installerIcon": "public/craftpos_icon.ico",
-      "uninstallerIcon": "public/craftpos_icon.ico",
-      "installerHeaderIcon": "public/craftpos_icon.ico"
+      "shortcutName": "CraftPOS"
     },
     "files": [
       "out/**/*",
       "main.js",
       "preload.js",
-      "package.json",
-      "public/craftpos_icon.ico"
+      "package.json"
     ]
   }
 }
