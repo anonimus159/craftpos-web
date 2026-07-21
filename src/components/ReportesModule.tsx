@@ -46,9 +46,20 @@ export default function ReportesModule() {
   // 1. KPI Calculations
   const activeBranchName = selectedBranchId === 'all' ? 'Todas las sedes' : (branches.find(b => b.id === selectedBranchId)?.name || 'Sede');
 
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfWeek = startOfToday - (now.getDay() * 24 * 60 * 60 * 1000);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
   const filteredSalesByBranch = sales.filter(s => {
-    if (selectedBranchId === 'all') return true;
-    return s.branchId === selectedBranchId;
+    if (selectedBranchId !== 'all' && s.branchId !== selectedBranchId) return false;
+    
+    const saleTime = new Date(s.timestamp).getTime();
+    if (dateRange === 'today' && saleTime < startOfToday) return false;
+    if (dateRange === 'week' && saleTime < startOfWeek) return false;
+    if (dateRange === 'month' && saleTime < startOfMonth) return false;
+    
+    return true;
   });
 
   const totalSalesVolume = filteredSalesByBranch.reduce((acc, s) => acc + s.total, 0);
@@ -93,20 +104,39 @@ export default function ReportesModule() {
   // Chart Data: Hourly / Transactional Sales Timeline
   const getSalesTimeline = () => {
     if (filteredSalesByBranch.length === 0) {
-      return [
-        { time: '10:00', total: 0 },
-        { time: '12:00', total: 0 },
-        { time: '14:00', total: 0 },
-        { time: '16:00', total: 0 }
-      ];
+      if (dateRange === 'today') return [{ time: '08:00', total: 0 }, { time: '12:00', total: 0 }, { time: '18:00', total: 0 }];
+      if (dateRange === 'week') return [{ time: 'Lun', total: 0 }, { time: 'Mie', total: 0 }, { time: 'Vie', total: 0 }];
+      if (dateRange === 'month') return [{ time: '1', total: 0 }, { time: '15', total: 0 }, { time: '30', total: 0 }];
     }
 
-    const sortedSales = [...filteredSalesByBranch].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    
-    return sortedSales.map((s, idx) => ({
-      time: new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      total: parseFloat(s.total.toFixed(2)),
-      title: `Venta ${idx + 1}`
+    const grouped: Record<string, number> = {};
+
+    filteredSalesByBranch.forEach(s => {
+      const d = new Date(s.timestamp);
+      let key = '';
+      if (dateRange === 'today') {
+        key = `${d.getHours().toString().padStart(2, '0')}:00`;
+      } else if (dateRange === 'week') {
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        key = days[d.getDay()];
+      } else if (dateRange === 'month') {
+        key = d.getDate().toString().padStart(2, '0');
+      }
+      
+      grouped[key] = (grouped[key] || 0) + s.total;
+    });
+
+    let sortedKeys = Object.keys(grouped);
+    if (dateRange === 'today' || dateRange === 'month') {
+      sortedKeys = sortedKeys.sort();
+    } else if (dateRange === 'week') {
+      const dayOrder = { 'Dom': 0, 'Lun': 1, 'Mar': 2, 'Mié': 3, 'Jue': 4, 'Vie': 5, 'Sáb': 6 };
+      sortedKeys = sortedKeys.sort((a, b) => dayOrder[a as keyof typeof dayOrder] - dayOrder[b as keyof typeof dayOrder]);
+    }
+
+    return sortedKeys.map(k => ({
+      time: k,
+      total: parseFloat(grouped[k].toFixed(2))
     }));
   };
 
@@ -340,7 +370,7 @@ export default function ReportesModule() {
               <div>
                 <h3 className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
                   <TrendingUp className="w-4 h-4 text-indigo-600" />
-                  <span>Curva de Facturación por Ventas (Día Actual)</span>
+                  <span>Curva de Facturación por Ventas ({dateRange === 'today' ? 'Hoy' : dateRange === 'week' ? 'Esta Semana' : 'Este Mes'})</span>
                 </h3>
               </div>
               <div className="flex-1 w-full text-[10px] font-mono">
