@@ -185,9 +185,7 @@ export default function PromoLanding() {
           </div>
 
           <a 
-            href="https://drive.google.com/uc?export=download&id=1gxYrAu_EHGMLUIU-NTHHpffelLqvEmJz"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="https://github.com/anonimus159/craftpos-web/releases/download/v1.0.0/CraftPOS-Setup.exe"
             className="bg-[#D92B75] hover:bg-[#c22466] !text-white px-5 py-2.5 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[3px] hover:translate-y-[3px] transition-all font-bold text-base flex items-center gap-2"
           >
             Descargar POS
@@ -252,9 +250,7 @@ export default function PromoLanding() {
               <Sparkles className="w-6 h-6 fill-white" />
             </a>
             <a 
-              href="https://drive.google.com/uc?export=download&id=1gxYrAu_EHGMLUIU-NTHHpffelLqvEmJz"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="https://github.com/anonimus159/craftpos-web/releases/download/v1.0.0/CraftPOS-Setup.exe"
               className="bg-white hover:bg-gray-50 text-black text-xl font-bold px-8 py-4 rounded-2xl border-[3px] border-black shadow-[6px_6px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[4px] hover:translate-y-[4px] transition-all flex items-center gap-2"
             >
               Descargar Instalador .exe
