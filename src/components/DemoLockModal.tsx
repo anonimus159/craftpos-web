@@ -44,7 +44,7 @@ export default function DemoLockModal({ onClose }: DemoLockModalProps) {
           <a
             href="/CraftPOS-Instalador.zip"
             download
-            className="w-full bg-black text-white font-black py-4 rounded-xl border-[3px] border-black shadow-[6px_6px_0px_#D92B75] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_#D92B75] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full bg-black !text-white font-black py-4 rounded-xl border-[3px] border-black shadow-[6px_6px_0px_#D92B75] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_#D92B75] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Download className="w-5 h-5" />
             DESCARGAR GRATIS

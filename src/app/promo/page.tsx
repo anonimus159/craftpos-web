@@ -167,11 +167,11 @@ export default function PromoLanding() {
   ];
 
   return (
-    <div className={`min-h-screen bg-[#FAF6EE] text-[#1A1A1A] ${nunito.className} antialiased selection:bg-[#D92B75] selection:text-white`}>
+    <div className={`min-h-screen bg-[#FAF6EE] text-[#1A1A1A] ${nunito.className} antialiased selection:bg-[#D92B75] selection:!text-white`}>
       <nav className="sticky top-0 z-50 bg-[#FAF6EE] border-b-[4px] border-black px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className={`text-3xl font-extrabold flex items-center gap-2 ${fredoka.className}`}>
-            <span className="bg-[#D92B75] text-white px-3 py-1 rounded-2xl border-[3px] border-black shadow-[3px_3px_0px_#000]">
+            <span className="bg-[#D92B75] !text-white px-3 py-1 rounded-2xl border-[3px] border-black shadow-[3px_3px_0px_#000]">
               C
             </span>
             <span>CraftPOS</span>
@@ -187,7 +187,7 @@ export default function PromoLanding() {
           <a 
             href="/CraftPOS-Setup.exe"
             download="CraftPOS-Setup.exe"
-            className="bg-[#D92B75] hover:bg-[#c22466] text-white px-5 py-2.5 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[3px] hover:translate-y-[3px] transition-all font-bold text-base flex items-center gap-2"
+            className="bg-[#D92B75] hover:bg-[#c22466] !text-white px-5 py-2.5 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[3px] hover:translate-y-[3px] transition-all font-bold text-base flex items-center gap-2"
           >
             Descargar POS
             <Download className="w-5 h-5" />
@@ -245,7 +245,7 @@ export default function PromoLanding() {
           <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
             <a 
               href="#demo"
-              className="bg-[#D92B75] hover:bg-[#c22466] text-white text-xl font-bold px-8 py-4 rounded-2xl border-[3px] border-black shadow-[6px_6px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[4px] hover:translate-y-[4px] transition-all flex items-center gap-2"
+              className="bg-[#D92B75] hover:bg-[#c22466] !text-white text-xl font-bold px-8 py-4 rounded-2xl border-[3px] border-black shadow-[6px_6px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[4px] hover:translate-y-[4px] transition-all flex items-center gap-2"
             >
               Probar Demo en Vivo
               <Sparkles className="w-6 h-6 fill-white" />
@@ -363,7 +363,7 @@ export default function PromoLanding() {
             <div className="absolute -inset-1.5 bg-gradient-to-r from-[#D92B75] to-orange-400 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
             <button 
               onClick={startLiveDemo}
-              className="relative bg-black text-white px-10 py-5 rounded-xl font-black text-2xl md:text-3xl border-[4px] border-black shadow-[8px_8px_0px_#D92B75] hover:translate-y-1 hover:shadow-[4px_4px_0px_#D92B75] active:translate-y-2 active:shadow-none transition-all flex items-center gap-4"
+              className="relative bg-black !text-white px-10 py-5 rounded-xl font-black text-2xl md:text-3xl border-[4px] border-black shadow-[8px_8px_0px_#D92B75] hover:translate-y-1 hover:shadow-[4px_4px_0px_#D92B75] active:translate-y-2 active:shadow-none transition-all flex items-center gap-4"
             >
               <span>INICIAR ENTORNO DE PRUEBA REAL</span>
               <ArrowRight className="w-8 h-8 md:w-10 md:h-10" />
@@ -487,7 +487,7 @@ export default function PromoLanding() {
                     alert('Error iniciando pago');
                   }
                 }}
-                className="w-full text-center mt-8 bg-[#D92B75] hover:bg-[#c22466] text-white font-bold py-3.5 rounded-xl border-[2px] border-black shadow-[3px_3px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all block text-sm"
+                className="w-full text-center mt-8 bg-[#D92B75] hover:bg-[#c22466] !text-white font-bold py-3.5 rounded-xl border-[2px] border-black shadow-[3px_3px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all block text-sm"
               >
                 Comprar Licencia Vitalicia
               </button>
@@ -551,7 +551,7 @@ export default function PromoLanding() {
       <footer className="bg-white border-t-[4px] border-black py-12 px-6 text-center">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className={`text-2xl font-extrabold flex items-center gap-2 ${fredoka.className}`}>
-            <span className="bg-[#D92B75] text-white px-2.5 py-0.5 rounded-xl border-[2px] border-black shadow-[2px_2px_0px_#000]">
+            <span className="bg-[#D92B75] !text-white px-2.5 py-0.5 rounded-xl border-[2px] border-black shadow-[2px_2px_0px_#000]">
               C
             </span>
             <span>CraftPOS</span>
