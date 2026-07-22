@@ -575,7 +575,7 @@ export default function PromoLanding() {
       
       {/* Floating WhatsApp Button */}
       <a 
-        href="https://wa.me/1234567890?text=Hola,%20me%20interesa%20CraftPOS" 
+        href="https://wa.me/573232313781?text=Hola,%20me%20interesa%20CraftPOS" 
         target="_blank" 
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 bg-[#25D366] hover:bg-[#1ebe57] text-white p-4 rounded-full border-[3px] border-black shadow-[4px_4px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all z-50 flex items-center justify-center"
