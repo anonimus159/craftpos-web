@@ -19,9 +19,10 @@ import ComprasModule from '../components/ComprasModule';
 import KardexModule from '../components/KardexModule';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ShieldAlert, Check, Eye, EyeOff, KeyRound, ArrowLeft, Download, RefreshCw } from 'lucide-react';
-
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   const { 
     currentModule, setModule, addLog, 
     isLicensed, activateLicense, 
