@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import CheckoutModal from '../../components/CheckoutModal';
 import { usePOSStore } from '../../store/store';
+import Chatbot from '../../components/Chatbot';
 
 const fredoka = Fredoka({ subsets: ['latin'], weight: ['600', '700'] });
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '500', '700'] });
@@ -572,17 +573,8 @@ export default function PromoLanding() {
           </div>
         </div>
       </footer>
-      
-      {/* Floating WhatsApp Button */}
-      <a 
-        href="https://wa.me/573232313781?text=Hola,%20me%20interesa%20CraftPOS" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 bg-[#25D366] hover:bg-[#1ebe57] text-white p-4 rounded-full border-[3px] border-black shadow-[4px_4px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all z-50 flex items-center justify-center"
-        title="Soporte por WhatsApp"
-      >
-        <MessageCircle className="w-8 h-8 fill-current" />
-      </a>
+      {/* Bot Virtual con WhatsApp de respaldo */}
+      <Chatbot />
       
       {/* STRIPE CHECKOUT MODAL (REMOVED) */}
     </div>
