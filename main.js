@@ -224,6 +224,12 @@ function createWindow() {
     win.maximize();
   });
 
+  // Intercept downloads and save to Downloads folder automatically
+  win.webContents.session.on('will-download', (event, item, webContents) => {
+    const defaultPath = path.join(app.getPath('downloads'), item.getFilename());
+    item.setSavePath(defaultPath);
+  });
+
   // Load the app
   win.loadURL('app://./index.html');
 }

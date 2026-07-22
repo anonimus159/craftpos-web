@@ -17,7 +17,8 @@ import {
   Download,
   ArrowRight,
   Lock,
-  MonitorPlay
+  MonitorPlay,
+  MessageCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -235,6 +236,11 @@ export default function PromoLanding() {
           <span className="inline-block bg-[#FCD34D] text-[#1A1A1A] font-black text-sm px-4 py-1.5 rounded-full border-[3px] border-black shadow-[3px_3px_0px_#000] mb-6 uppercase tracking-wider">
             🎉 Software Multirubro de Próxima Generación
           </span>
+          <div className="mb-4">
+            <span className="inline-block bg-[#4ADE80] text-[#1A1A1A] font-black text-sm px-4 py-1.5 rounded-full border-[3px] border-black shadow-[3px_3px_0px_#000] uppercase tracking-wider">
+              🎁 Promoción especial: ¡30 días gratis para descargar y probar!
+            </span>
+          </div>
           <h1 className={`text-4xl md:text-7xl font-black leading-tight mb-8 ${fredoka.className} tracking-tight`}>
             El ingrediente dulce, sencillo y <span className="text-[#D92B75] underline decoration-[5px] decoration-black">secreto</span> para tu negocio.
           </h1>
@@ -566,6 +572,18 @@ export default function PromoLanding() {
           </div>
         </div>
       </footer>
+      
+      {/* Floating WhatsApp Button */}
+      <a 
+        href="https://wa.me/1234567890?text=Hola,%20me%20interesa%20CraftPOS" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 bg-[#25D366] hover:bg-[#1ebe57] text-white p-4 rounded-full border-[3px] border-black shadow-[4px_4px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all z-50 flex items-center justify-center"
+        title="Soporte por WhatsApp"
+      >
+        <MessageCircle className="w-8 h-8 fill-current" />
+      </a>
+      
       {/* STRIPE CHECKOUT MODAL (REMOVED) */}
     </div>
   );

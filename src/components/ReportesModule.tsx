@@ -20,13 +20,15 @@ export default function ReportesModule() {
     productionBatches,
     mermaLogs,
     customOrders,
-    warehouseTransfers
-    ,appConfig
+    warehouseTransfers,
+    appConfig,
+    currentModule,
+    licensedModules
   } = usePOSStore();
 
   const sym = appConfig.currencySymbol || "S/";
 
-  const [activeReportTab, setActiveReportTab] = useState<'consolidated' | 'verticals' | 'export'>('consolidated');
+  const [activeReportTab, setActiveReportTab] = useState<'global' | 'consolidated' | 'verticals' | 'export'>('consolidated');
   const [selectedVertical, setSelectedVertical] = useState<'restaurant' | 'pharmacy' | 'bakery' | 'fruit' | 'business'>('restaurant');
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month'>('today');
   const [selectedBranchId, setSelectedBranchId] = useState<'all' | string>('all');
@@ -43,6 +45,9 @@ export default function ReportesModule() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const activeModulesCount = Object.values(licensedModules || {}).filter(Boolean).length;
+  const hasMultipleModules = activeModulesCount > 1;
+
   // 1. KPI Calculations
   const activeBranchName = selectedBranchId === 'all' ? 'Todas las sedes' : (branches.find(b => b.id === selectedBranchId)?.name || 'Sede');
 
@@ -53,6 +58,9 @@ export default function ReportesModule() {
 
   const filteredSalesByBranch = sales.filter(s => {
     if (selectedBranchId !== 'all' && s.branchId !== selectedBranchId) return false;
+    
+    // ONLY show sales for the active module unless we are in the Global dashboard
+    if (activeReportTab !== 'global' && s.storeType !== currentModule) return false; 
     
     const saleTime = new Date(s.timestamp).getTime();
     if (dateRange === 'today' && saleTime < startOfToday) return false;
@@ -65,10 +73,11 @@ export default function ReportesModule() {
   const totalSalesVolume = filteredSalesByBranch.reduce((acc, s) => acc + s.total, 0);
   const transactionCount = filteredSalesByBranch.length;
   
-  const lowStockCount = products.filter(p => p.stock <= p.minStock && p.stock > 0).length;
-  const outOfStockCount = products.filter(p => p.stock === 0).length;
+  const filteredProductsByModule = products.filter(p => activeReportTab === 'global' ? true : p.storeType === currentModule);
+  const lowStockCount = filteredProductsByModule.filter(p => p.stock <= p.minStock && p.stock > 0).length;
+  const outOfStockCount = filteredProductsByModule.filter(p => p.stock === 0).length;
 
-  // Chart Data: Sales share by Vertical
+  // Chart Data: Sales share by Vertical (Global)
   const getSalesShareByModule = () => {
     const dataObj: Record<string, number> = {
       restaurant: 0,
@@ -88,8 +97,8 @@ export default function ReportesModule() {
       restaurant: 'Restaurante',
       pharmacy: 'Farmacia',
       bakery: 'Panadería',
-      fruit: 'Heladería & Postres',
-      business: 'Almacén General'
+      fruit: 'Postres',
+      business: 'Almacén'
     };
 
     return Object.entries(dataObj).map(([key, val]) => ({
@@ -98,7 +107,30 @@ export default function ReportesModule() {
     })).filter(item => item.value > 0);
   };
 
-  const pieData = getSalesShareByModule();
+  // Chart Data: Sales share by Category (Current Module)
+  const getSalesShareByCategory = () => {
+    const dataObj: Record<string, number> = {};
+
+    filteredSalesByBranch.forEach(sale => {
+      sale.items.forEach(item => {
+        const cat = item.product.category || 'Sin Categoría';
+        const lineTotal = (item.weight || item.quantity) * (item.isGenericEquivalent ? (item.product.costPrice * 1.5) : item.product.salePrice);
+        if (!dataObj[cat]) dataObj[cat] = 0;
+        dataObj[cat] += lineTotal;
+      });
+    });
+
+    return Object.entries(dataObj)
+      .map(([key, val]) => ({
+        name: key,
+        value: parseFloat(val.toFixed(2))
+      }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5); // Top 5 categories
+  };
+
+  const pieData = activeReportTab === 'global' ? getSalesShareByModule() : getSalesShareByCategory();
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#3b82f6'];
 
   // Chart Data: Hourly / Transactional Sales Timeline
@@ -287,14 +319,24 @@ export default function ReportesModule() {
       </div>
 
       {/* TABS SELECTOR */}
-      <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start text-xs font-bold">
+      <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start text-xs font-bold flex-wrap gap-1">
+        {hasMultipleModules && (
+          <button
+            onClick={() => setActiveReportTab('global')}
+            className={`px-4 py-2 rounded-lg transition-all ${
+              activeReportTab === 'global' ? 'bg-white text-indigo-650 shadow' : 'text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            Dashboard Global
+          </button>
+        )}
         <button
           onClick={() => setActiveReportTab('consolidated')}
           className={`px-4 py-2 rounded-lg transition-all ${
             activeReportTab === 'consolidated' ? 'bg-white text-indigo-650 shadow' : 'text-slate-600 hover:text-slate-800'
           }`}
         >
-          Dashboard Consolidado
+          Dashboard del Módulo Actual
         </button>
         <button
           onClick={() => setActiveReportTab('verticals')}
@@ -314,8 +356,8 @@ export default function ReportesModule() {
         </button>
       </div>
 
-      {/* TAB CONTENT: CONSOLIDATED */}
-      {activeReportTab === 'consolidated' && (
+      {/* TAB CONTENT: CONSOLIDATED OR GLOBAL */}
+      {(activeReportTab === 'consolidated' || activeReportTab === 'global') && (
         <>
           {/* KPI GRID */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -396,7 +438,7 @@ export default function ReportesModule() {
               <div>
                 <h3 className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1.5 uppercase tracking-wider">
                   <BarChart3 className="w-4 h-4 text-emerald-500" />
-                  <span>Cuota de Ventas por Rubro</span>
+                  <span>{activeReportTab === 'global' ? 'Cuota de Ventas por Rubro' : 'Cuota de Ventas por Categoría'}</span>
                 </h3>
               </div>
               <div className="flex-1 w-full flex items-center justify-center text-[10px] font-mono relative">

@@ -1199,12 +1199,22 @@ export default function Home() {
       <footer className="w-full border-t border-slate-200 bg-white/70 py-3.5 text-center text-[10px] text-slate-400 font-semibold font-mono">
         <div className="max-w-[1600px] mx-auto px-4 flex justify-between items-center">
           <span>Usuario: <strong className="text-slate-700 font-extrabold">{activeSession?.fullName || operatorName}</strong> ({activeSession?.role || userRole}) | {appConfig.companyName || 'Sistema POS'}</span>
-          <span className="flex gap-2">
-            <span>[F1-F4] Cambiar Módulo</span>
-            <span>|</span>
-            <span>[Alt+C] Cobro Normal</span>
-            <span>|</span>
-            <span>[Alt+R] Cobro Rápido</span>
+          <span className="flex items-center gap-3">
+            {isTrialActive ? (
+              <span className="bg-yellow-200 text-yellow-900 px-3 py-1 rounded-md font-bold text-[11px] border border-yellow-400">
+                Prueba: {trialDaysLeft} días gratis
+              </span>
+            ) : (
+              <span className="bg-red-200 text-red-900 px-3 py-1 rounded-md font-bold text-[11px] border border-red-400">
+                Prueba finalizada
+              </span>
+            )}
+            <button 
+              onClick={() => router.push('/promo')} 
+              className="bg-[#D92B75] text-white px-4 py-1.5 rounded-md font-bold text-[11px] hover:bg-[#c22466] transition-colors border-[2px] border-black shadow-[2px_2px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px]"
+            >
+              Activar licencia
+            </button>
           </span>
           <span>{appConfig.cashierName || 'Caja Principal'} | © 2026 POS</span>
         </div>
