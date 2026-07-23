@@ -76,6 +76,10 @@ export default function VentasModule() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [currentSaleInvoice, setCurrentSaleInvoice] = useState<Sale | null>(null);
   
+  // Billing
+  const [invoiceName, setInvoiceName] = useState('');
+  const [invoiceNit, setInvoiceNit] = useState('');
+  
   // Barcode search
   const [barcodeInput, setBarcodeInput] = useState('');
 
@@ -518,7 +522,7 @@ export default function VentasModule() {
       setIsWaitingDatafono(true);
       setTimeout(() => {
         setIsWaitingDatafono(false);
-        const res = processCheckout('datafono', total);
+        const res = processCheckout('datafono', total, 0, 'mesa', 'c-gen', invoiceName, invoiceNit);
         if (res.success && res.sale) {
           setCurrentSaleInvoice(res.sale);
           setShowCheckoutModal(false);
@@ -530,7 +534,7 @@ export default function VentasModule() {
       return;
     }
 
-    const res = processCheckout(paymentMethod, cashVal);
+    const res = processCheckout(paymentMethod, cashVal, 0, 'mesa', 'c-gen', invoiceName, invoiceNit);
     if (res.success && res.sale) {
       setCurrentSaleInvoice(res.sale);
       setShowCheckoutModal(false);
@@ -543,7 +547,7 @@ export default function VentasModule() {
   // Quick checkout
   const handleQuickCheckout = () => {
     if (cartItems.length === 0) return;
-    const res = processCheckout('cash', total);
+    const res = processCheckout('cash', total, 0, 'mesa', 'c-gen', invoiceName, invoiceNit);
     if (res.success && res.sale) {
       setCurrentSaleInvoice(res.sale);
       setShowInvoiceModal(true);
@@ -1239,6 +1243,30 @@ export default function VentasModule() {
                 <strong className="text-lg font-black text-slate-900 font-mono">{sym} {total.toFixed(2)}</strong>
               </div>
 
+              {/* Billing Data */}
+              <div className="grid grid-cols-2 gap-2 bg-slate-100 p-2.5 rounded-lg border border-slate-200">
+                <div>
+                  <label className="block text-slate-500 font-semibold mb-1 text-[10px] uppercase">Razón Social / Nombre</label>
+                  <input
+                    type="text"
+                    value={invoiceName}
+                    onChange={(e) => setInvoiceName(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-800 text-xs outline-none focus:border-indigo-400"
+                    placeholder="S/N"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 font-semibold mb-1 text-[10px] uppercase">NIT / CI</label>
+                  <input
+                    type="text"
+                    value={invoiceNit}
+                    onChange={(e) => setInvoiceNit(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-800 text-xs outline-none focus:border-indigo-400"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
               {/* Payment selector */}
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Método de Cobro</label>
@@ -1339,7 +1367,8 @@ export default function VentasModule() {
               <div className="border-b border-dashed border-zinc-400 pb-2">
                 <p>FECHA: {new Date(currentSaleInvoice.timestamp).toLocaleString()}</p>
                 <p>CAJERO: {currentSaleInvoice.cashier}</p>
-                <p>CLIENTE: {clients.find(c => c.id === selectedClientId)?.name || 'Cliente General'}</p>
+                <p>CLIENTE: {currentSaleInvoice.invoiceName || clients.find(c => c.id === selectedClientId)?.name || 'S/N'}</p>
+                <p>NIT/CI: {currentSaleInvoice.invoiceNit || '0'}</p>
               </div>
 
               <div className="border-b border-dashed border-zinc-400 pb-2">

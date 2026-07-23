@@ -121,6 +121,8 @@ export interface Sale {
   orderType?: 'mesa' | 'llevar' | 'domicilio'; // Restaurant support
   branchId?: string; // Multisucursal support
   registerId?: string; // Multicaja support
+  invoiceName?: string; // For billing
+  invoiceNit?: string; // For billing
 }
 
 export interface TableState {

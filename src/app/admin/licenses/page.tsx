@@ -10,7 +10,12 @@ export default function AdminLicensesPage() {
   const [error, setError] = useState('');
   const [licenses, setLicenses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
+  
+  // Manual Generation State
+  const [newEmail, setNewEmail] = useState('');
+  const [newModule, setNewModule] = useState('restaurante');
+  const [isGenerating, setIsGenerating] = useState(false);
+  
   // Authenticate
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +34,39 @@ export default function AdminLicensesPage() {
       fetchLicenses();
     }
   }, []);
+
+  const generateLicenseKey = (modulePrefix: string): string => {
+    const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+    return `${modulePrefix.toUpperCase().substring(0, 4)}-${randomPart}`;
+  };
+
+  const handleGenerateLicense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail || !newModule) return;
+    setIsGenerating(true);
+    
+    try {
+      const key = generateLicenseKey(newModule);
+      const { error } = await supabase
+        .from('licenses')
+        .insert({
+          license_key: key,
+          module: newModule,
+          buyer_email: newEmail,
+          stripe_session_id: 'manual_' + Date.now(),
+        });
+        
+      if (error) throw error;
+      
+      setNewEmail('');
+      fetchLicenses();
+    } catch (err) {
+      console.error("Error generating license:", err);
+      alert("Hubo un error al generar la licencia");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const fetchLicenses = async () => {
     setIsLoading(true);
@@ -128,6 +166,49 @@ export default function AdminLicensesPage() {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
           </div>
+        </div>
+
+        {/* Generar Licencia Manual */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-indigo-500" />
+            Generar Licencia Manual
+          </h3>
+          <form onSubmit={handleGenerateLicense} className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Correo del Cliente</label>
+              <input 
+                type="email" 
+                required
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="cliente@correo.com" 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              />
+            </div>
+            <div className="flex-1 w-full">
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Módulo / Negocio</label>
+              <select 
+                value={newModule}
+                onChange={(e) => setNewModule(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              >
+                <option value="restaurante">Restaurante</option>
+                <option value="panaderia">Panadería</option>
+                <option value="heladeria">Heladería</option>
+                <option value="almacen">Almacén / Tienda</option>
+                <option value="farmacia">Farmacia</option>
+              </select>
+            </div>
+            <button 
+              type="submit" 
+              disabled={isGenerating}
+              className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-2 px-6 rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {isGenerating ? 'Generando...' : 'Crear Licencia'}
+            </button>
+          </form>
         </div>
 
         {/* Table */}

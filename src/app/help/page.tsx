@@ -67,6 +67,160 @@ export default function HelpCenterPage() {
           </div>
         </div>
 
+        {/* Video Tutorials Section */}
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <PlayCircle className="w-5 h-5 text-emerald-600" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900">Video Tutoriales</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Video Placeholder 1 */}
+            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
+              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=600" alt="Ventas" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
+                  <PlayCircle className="w-8 h-8 text-white ml-1" />
+                </div>
+                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
+                  04:25
+                </div>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-emerald-600 transition-colors">¿Cómo usar el Módulo de Ventas?</h3>
+                <p className="text-sm text-slate-500 line-clamp-2">Aprende a cobrar rápidamente, agregar productos al carrito, aplicar descuentos y emitir tickets para tus clientes.</p>
+              </div>
+            </div>
+
+            {/* Video Placeholder 2 */}
+            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
+              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600" alt="Caja" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
+                  <PlayCircle className="w-8 h-8 text-white ml-1" />
+                </div>
+                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
+                  03:10
+                </div>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-indigo-600 transition-colors">Arqueo y Cierre de Caja</h3>
+                <p className="text-sm text-slate-500 line-clamp-2">Descubre cómo iniciar un turno, registrar entradas/salidas de efectivo, y hacer un corte Z perfecto sin faltantes.</p>
+              </div>
+            </div>
+            
+            {/* Video Placeholder 3 */}
+            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
+              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1586528116311-ad8ed7c83a7f?auto=format&fit=crop&q=80&w=600" alt="Inventario" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
+                  <PlayCircle className="w-8 h-8 text-white ml-1" />
+                </div>
+                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
+                  06:45
+                </div>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-amber-600 transition-colors">Control de Inventario y Recetas</h3>
+                <p className="text-sm text-slate-500 line-clamp-2">Cómo cargar insumos, crear productos compuestos (recetas) y manejar alertas de stock bajo automáticamente.</p>
+              </div>
+            </div>
+
+            {/* Video Placeholder 4 */}
+            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
+              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=600" alt="Reportes" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
+                  <PlayCircle className="w-8 h-8 text-white ml-1" />
+                </div>
+                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
+                  02:50
+                </div>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-blue-600 transition-colors">Análisis y Dashboard</h3>
+                <p className="text-sm text-slate-500 line-clamp-2">Interpreta los gráficos de ventas, productos más vendidos y comisiones para tomar mejores decisiones.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Step by Step Guides */}
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900">Guías Paso a Paso</h2>
+          </div>
+          
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8">
+            
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Guide 1 */}
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-slate-900 mb-4 pb-4 border-b border-slate-100">Crear una Categoría y Producto</h3>
+                <ol className="space-y-4">
+                  <li className="flex gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center">1</span>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Ir a Configuración</h4>
+                      <p className="text-sm text-slate-500">En el menú lateral, selecciona el ícono de engranaje para ir a Configuración.</p>
+                    </div>
+                  </li>
+                  <li className="flex gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center">2</span>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Crear Categoría</h4>
+                      <p className="text-sm text-slate-500">Haz clic en la pestaña "Categorías", luego en "Nueva Categoría". Asígnale un nombre (ej. Bebidas) y un color.</p>
+                    </div>
+                  </li>
+                  <li className="flex gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center">3</span>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Añadir Producto</h4>
+                      <p className="text-sm text-slate-500">Ve a "Productos", clic en "+ Nuevo Producto", rellena los datos de precio, asocia la categoría que creaste y guarda.</p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+              
+              <div className="hidden md:block w-px bg-slate-100" />
+
+              {/* Guide 2 */}
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-slate-900 mb-4 pb-4 border-b border-slate-100">Realizar una Devolución</h3>
+                <ol className="space-y-4">
+                  <li className="flex gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-50 text-amber-600 font-bold flex items-center justify-center">1</span>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Buscar la Venta</h4>
+                      <p className="text-sm text-slate-500">Ve al módulo de Ventas. En la sección superior, haz clic en el historial o "Últimas Ventas".</p>
+                    </div>
+                  </li>
+                  <li className="flex gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-50 text-amber-600 font-bold flex items-center justify-center">2</span>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Seleccionar el Ticket</h4>
+                      <p className="text-sm text-slate-500">Localiza el ticket por el número que trae el cliente o por la fecha/hora.</p>
+                    </div>
+                  </li>
+                  <li className="flex gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-50 text-amber-600 font-bold flex items-center justify-center">3</span>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Anular y Reembolsar</h4>
+                      <p className="text-sm text-slate-500">Haz clic en "Anular Venta". El inventario regresará automáticamente y la caja registrará la salida del dinero.</p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
         {/* FAQs */}
         <div className="mb-12">
           <h2 className="text-2xl font-black text-slate-900 mb-6">Preguntas Frecuentes</h2>

@@ -49,6 +49,8 @@ function TicketPrintView({ sale, config, onClose }: { sale: any; config: any; on
       <div class="row"><span>Fecha:</span><span>${new Date(sale.timestamp || Date.now()).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' })}</span></div>
       <div class="row"><span>Cajero:</span><span>${sale.user || 'Sistema'}</span></div>
       ${sale.cashier ? `<div class="row"><span>Cajero:</span><span>${sale.cashier}</span></div>` : ''}
+      <div class="row"><span>Cliente:</span><span>${sale.invoiceName || 'S/N'}</span></div>
+      <div class="row"><span>NIT/CI:</span><span>${sale.invoiceNit || '0'}</span></div>
       <div class="line"></div>
       <div class="row bold"><span>DESCRIPCIÓN</span><span>TOTAL</span></div>
       <div class="line"></div>
@@ -114,6 +116,8 @@ function TicketPrintView({ sale, config, onClose }: { sale: any; config: any; on
             <div className="text-center font-bold text-[10px] mb-2">COMPROBANTE DE VENTA</div>
             <div className="flex justify-between text-[10px] text-slate-500"><span>Ticket N°:</span><span className="font-bold">{sale.id?.slice(-8)}</span></div>
             <div className="flex justify-between text-[10px] text-slate-500"><span>Fecha:</span><span>{new Date(sale.timestamp || Date.now()).toLocaleDateString('es-BO')}</span></div>
+            <div className="flex justify-between text-[10px] text-slate-500"><span>Cliente:</span><span>{sale.invoiceName || 'S/N'}</span></div>
+            <div className="flex justify-between text-[10px] text-slate-500"><span>NIT/CI:</span><span>{sale.invoiceNit || '0'}</span></div>
             <div className="border-t border-dashed border-slate-300 my-2" />
             {(sale.items || []).map((item: any, i: number) => (
               <div key={i} className="mb-1">

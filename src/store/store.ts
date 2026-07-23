@@ -123,7 +123,7 @@ interface POSState {
   loadCartFromTable: (tableId: string) => void;
   
   // Checkout Actions
-  processCheckout: (paymentMethod: 'cash' | 'card' | 'transfer' | 'credit' | 'datafono', cashReceived: number, tipAmount?: number, orderType?: 'mesa' | 'llevar' | 'domicilio', clientId?: string) => { success: boolean; change: number; sale?: Sale };
+  processCheckout: (paymentMethod: 'cash' | 'card' | 'transfer' | 'credit' | 'datafono', cashReceived: number, tipAmount?: number, orderType?: 'mesa' | 'llevar' | 'domicilio', clientId?: string, invoiceName?: string, invoiceNit?: string) => { success: boolean; change: number; sale?: Sale };
   
   // Inventory Actions
   addProduct: (product: Omit<Product, 'id'>) => void;
@@ -1607,7 +1607,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
   },
 
   // Checkout Action
-  processCheckout: (paymentMethod, cashReceived, tipAmount = 0, orderType = 'mesa', clientId = 'c-gen') => {
+  processCheckout: (paymentMethod, cashReceived, tipAmount = 0, orderType = 'mesa', clientId = 'c-gen', invoiceName, invoiceNit) => {
     const { 
       currentModule, activeCarts, cartDiscounts, selectedTableId, 
       restaurantTables, bakeryTables, fruitTables, cashSession, companyConfig, dianConfig, activeBranchId, activeRegisterId 
@@ -1692,7 +1692,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
       tipAmount,
       orderType,
       branchId: activeBranchId,
-      registerId: activeRegisterId
+      registerId: activeRegisterId,
+      invoiceName,
+      invoiceNit
     };
 
     // Deduct stock and check replenishment warnings, recording stock movements (Kardex)
