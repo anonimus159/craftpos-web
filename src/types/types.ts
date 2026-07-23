@@ -112,7 +112,7 @@ export interface Sale {
   tax: number;
   discount: number;
   total: number;
-  paymentMethod: 'cash' | 'card' | 'transfer' | 'credit';
+  paymentMethod: 'cash' | 'card' | 'transfer' | 'credit' | 'datafono';
   cashReceived: number;
   changeGiven: number;
   cashier: string;

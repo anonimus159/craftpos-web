@@ -325,7 +325,7 @@ export default function OnboardingModule() {
                     <input
                       type="number"
                       value={taxRate}
-                      onChange={e => setTaxRate(Number(e.target.value))}
+                      onChange={e => setTaxRate(e.target.value === '' ? ('' as any) : Number(e.target.value))}
                       className={inputClass}
                       min={0} max={50} step={0.5}
                     />

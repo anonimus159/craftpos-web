@@ -29,7 +29,6 @@ export default function ReportesModule() {
   const sym = appConfig.currencySymbol || "S/";
 
   const [activeReportTab, setActiveReportTab] = useState<'global' | 'consolidated' | 'verticals' | 'export'>('consolidated');
-  const [selectedVertical, setSelectedVertical] = useState<'restaurant' | 'pharmacy' | 'bakery' | 'fruit' | 'business'>('restaurant');
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month'>('today');
   const [selectedBranchId, setSelectedBranchId] = useState<'all' | string>('all');
 
@@ -211,7 +210,7 @@ export default function ReportesModule() {
   const triggerExport = (type: 'excel' | 'pdf') => {
     setExportingType(type);
     setExportMessage(type === 'excel' 
-      ? 'Generando hoja de cálculo XLSX consolidada. Procesando registros de ventas, kardex y cortes de caja...' 
+      ? 'Generando hoja de cálculo consolidada. Procesando registros de ventas, kardex y cortes de caja...' 
       : 'Estructurando documento PDF gerencial. Insertando gráficos vectoriales y membretes tributarios de la DIAN...'
     );
 
@@ -219,7 +218,26 @@ export default function ReportesModule() {
       setExportMessage('Aplicando firmas criptográficas de auditoría...');
       setTimeout(() => {
         setExportingType(null);
-        showToast(`¡Correcto! Reporte descargado como DIAN-REPORTE-CONSOLIDADO.${type === 'excel' ? 'xlsx' : 'pdf'}`);
+        if (type === 'pdf') {
+          // Utilizar impresión nativa para generar el PDF (el usuario puede seleccionar 'Guardar como PDF')
+          window.print();
+          showToast(`Abriendo el diálogo de impresión para exportar como PDF.`);
+        } else {
+          // Generate actual CSV data
+          const headers = "ID Venta,Fecha,Cajero,Total,Tipo,Módulo\n";
+          const rows = sales.map(s => `${s.id},${new Date(s.timestamp).toLocaleDateString()},${s.cashier || 'Sistema'},${s.total},${s.paymentMethod},${s.storeType}`).join("\n");
+          const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(headers + rows);
+          
+          // Create an anchor element and trigger download
+          const a = document.createElement("a");
+          a.href = csvContent;
+          a.download = `DIAN-REPORTE-CONSOLIDADO-${new Date().toISOString().split('T')[0]}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          showToast(`¡Correcto! Guardando el reporte de Excel (CSV).`);
+        }
       }, 1000);
     }, 1200);
   };
@@ -550,34 +568,10 @@ export default function ReportesModule() {
 
       {/* TAB CONTENT: VERTICAL SPECIFIC REPORTS */}
       {activeReportTab === 'verticals' && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Vertical Menu selector */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm text-xs font-bold">
-            <h4 className="text-[10px] text-slate-400 uppercase tracking-wider border-b border-slate-200 pb-2 mb-2">Seleccionar Rubro</h4>
-            {[
-              { id: 'restaurant', label: 'Restaurante', color: 'border-rose-500 text-rose-650' },
-              { id: 'pharmacy', label: 'Farmacia', color: 'border-emerald-500 text-emerald-650' },
-              { id: 'bakery', label: 'Panadería', color: 'border-amber-500 text-amber-650' },
-              { id: 'fruit', label: 'Heladería & Postres', color: 'border-pink-500 text-pink-600' },
-              { id: 'business', label: 'Almacén General', color: 'border-blue-500 text-blue-650' }
-            ].map(v => (
-              <button
-                key={v.id}
-                onClick={() => setSelectedVertical(v.id as any)}
-                className={`w-full text-left px-3 py-2 rounded-xl border transition-all cursor-pointer ${
-                  selectedVertical === v.id
-                    ? `bg-slate-50 border-l-4 ${v.color} shadow-sm`
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-
+        <div className="flex flex-col gap-6">
           {/* Specialized Report Panel */}
-          <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm min-h-[400px]">
-            {selectedVertical === 'restaurant' && (
+          <div className="w-full bg-white border border-slate-200 rounded-2xl p-5 shadow-sm min-h-[400px]">
+            {currentModule === 'restaurant' && (
               <div className="flex flex-col gap-5">
                 <div className="border-b border-slate-200 pb-3">
                   <h3 className="text-sm font-bold text-slate-800">Informe Técnico - Restaurante</h3>
@@ -619,7 +613,7 @@ export default function ReportesModule() {
               </div>
             )}
 
-            {selectedVertical === 'pharmacy' && (
+            {currentModule === 'pharmacy' && (
               <div className="flex flex-col gap-5">
                 <div className="border-b border-slate-200 pb-3">
                   <h3 className="text-sm font-bold text-slate-800">Informe de Control Farmacéutico</h3>
@@ -653,7 +647,7 @@ export default function ReportesModule() {
               </div>
             )}
 
-            {selectedVertical === 'bakery' && (
+            {currentModule === 'bakery' && (
               <div className="flex flex-col gap-5">
                 <div className="border-b border-slate-200 pb-3">
                   <h3 className="text-sm font-bold text-slate-800">Informe de Producción y Panadería</h3>
@@ -686,7 +680,7 @@ export default function ReportesModule() {
               </div>
             )}
 
-            {selectedVertical === 'fruit' && (
+            {currentModule === 'fruit' && (
               <div className="flex flex-col gap-5">
                 <div className="border-b border-slate-200 pb-3">
                   <h3 className="text-sm font-bold text-slate-800">Informe de Mermas - Heladería & Postres</h3>
@@ -737,7 +731,7 @@ export default function ReportesModule() {
               </div>
             )}
 
-            {selectedVertical === 'business' && (
+            {currentModule === 'business' && (
               <div className="flex flex-col gap-5">
                 <div className="border-b border-slate-200 pb-3">
                   <h3 className="text-sm font-bold text-slate-800">Informe de Almacén y Logística</h3>

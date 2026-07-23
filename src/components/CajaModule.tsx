@@ -70,7 +70,7 @@ function TicketPrintView({ sale, config, onClose }: { sale: any; config: any; on
         <div class="row" style="margin-top:4px"><span>Efectivo:</span><span>${sym} ${sale.cashReceived?.toFixed(2)}</span></div>
         <div class="row"><span>Cambio:</span><span class="bold">${sym} ${(sale.cashReceived - sale.total)?.toFixed(2)}</span></div>
       ` : ''}
-      <div class="row"><span>Forma de Pago:</span><span>${sale.paymentMethod === 'cash' ? 'Efectivo' : sale.paymentMethod === 'card' ? 'Tarjeta' : sale.paymentMethod === 'transfer' ? 'QR/Transf.' : 'Crédito'}</span></div>
+      <div class="row"><span>Forma de Pago:</span><span>${sale.paymentMethod === 'cash' ? 'Efectivo' : sale.paymentMethod === 'card' ? 'Tarjeta' : sale.paymentMethod === 'transfer' ? 'QR/Transf.' : sale.paymentMethod === 'datafono' ? 'Datáfono' : 'Crédito'}</span></div>
       <div class="line"></div>
       ${config.ticketCustomText ? `<div class="center" style="font-size:10px;margin-top:4px">${config.ticketCustomText}</div>` : ''}
       <div class="center" style="font-size:9px;margin-top:6px">¡Gracias por su compra!</div>
@@ -167,6 +167,7 @@ function CierreReport({ sales, cashMovements, cashSession, config, registerId, o
     card: regSales.filter((s: any) => s.paymentMethod === 'card').reduce((a: number, s: any) => a + s.total, 0),
     transfer: regSales.filter((s: any) => s.paymentMethod === 'transfer').reduce((a: number, s: any) => a + s.total, 0),
     credit: regSales.filter((s: any) => s.paymentMethod === 'credit').reduce((a: number, s: any) => a + s.total, 0),
+    datafono: regSales.filter((s: any) => s.paymentMethod === 'datafono').reduce((a: number, s: any) => a + s.total, 0),
   };
 
   const cashIns = regMoves.filter((m: any) => m.type === 'in' && m.concept !== 'Apertura de Caja').reduce((a: number, m: any) => a + m.amount, 0);
@@ -402,6 +403,7 @@ export default function CajaModule() {
   const totalCardSales = regSales.filter(s => s.paymentMethod === 'card').reduce((a, s) => a + s.total, 0);
   const totalTransferSales = regSales.filter(s => s.paymentMethod === 'transfer').reduce((a, s) => a + s.total, 0);
   const totalCreditSales = regSales.filter(s => s.paymentMethod === 'credit').reduce((a, s) => a + s.total, 0);
+  const totalDatafonoSales = regSales.filter(s => s.paymentMethod === 'datafono').reduce((a, s) => a + s.total, 0);
   const totalAllSales = regSales.reduce((a, s) => a + s.total, 0);
 
   const regMoves = cashMovements.filter(m => m.registerId === activeRegisterId);
@@ -663,7 +665,7 @@ export default function CajaModule() {
                   <div key={s.id} className="flex justify-between items-center text-xs py-1.5 border-b border-slate-50">
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-400 font-mono text-[10px]">#{s.id?.slice(-4)}</span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${s.paymentMethod === 'cash' ? 'bg-emerald-400' : s.paymentMethod === 'card' ? 'bg-blue-400' : 'bg-purple-400'}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${s.paymentMethod === 'cash' ? 'bg-emerald-400' : s.paymentMethod === 'card' ? 'bg-blue-400' : s.paymentMethod === 'datafono' ? 'bg-indigo-500' : 'bg-purple-400'}`} />
                       <span className="text-slate-600 truncate max-w-[100px]">{s.cashier || 'Consumidor final'}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -714,7 +716,7 @@ export default function CajaModule() {
                 <span className="text-slate-600 font-medium text-[11px]">{row.label}</span>
                 <input type="number" min={0}
                   value={(cashDenominations as any)[row.key]}
-                  onChange={e => setCashDenominations(p => ({ ...p, [row.key]: parseInt(e.target.value) || 0 }))}
+                  onChange={e => setCashDenominations(p => ({ ...p, [row.key]: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0) }))}
                   className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-center text-slate-800 font-mono text-xs outline-none focus:border-indigo-400 transition-all w-full"
                 />
                 <span className="text-right font-mono text-slate-700 text-[11px]">

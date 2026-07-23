@@ -389,7 +389,7 @@ export default function CotizacionesModule({ setActiveTab }: CotizacionesModuleP
                               type="number"
                               min={1}
                               value={item.quantity}
-                              onChange={(e) => handleUpdateQty(item.product.id, parseInt(e.target.value) || 1)}
+                              onChange={(e) => handleUpdateQty(item.product.id, e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 1))}
                               className="w-10 text-center bg-slate-50 border border-slate-200 rounded px-1 text-slate-800 font-mono outline-none"
                             />
                             <span className="font-mono text-slate-600">{sym} {(item.product.salePrice * item.quantity).toFixed(2)}</span>

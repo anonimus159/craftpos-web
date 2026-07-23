@@ -476,7 +476,7 @@ export default function ComprasModule() {
                     min={1}
                     required
                     value={newItemQty}
-                    onChange={(e) => setNewItemQty(parseInt(e.target.value) || 1)}
+                    onChange={(e) => setNewItemQty(e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 1))}
                     className="w-full bg-white border border-slate-250 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold"
                   />
                 </div>
@@ -489,7 +489,7 @@ export default function ComprasModule() {
                     min="0.01"
                     required
                     value={newItemCost}
-                    onChange={(e) => setNewItemCost(parseFloat(e.target.value) || 0.0)}
+                    onChange={(e) => setNewItemCost(e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0))}
                     className="w-full bg-white border border-slate-250 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold font-mono"
                   />
                 </div>

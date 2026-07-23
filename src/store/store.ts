@@ -123,7 +123,7 @@ interface POSState {
   loadCartFromTable: (tableId: string) => void;
   
   // Checkout Actions
-  processCheckout: (paymentMethod: 'cash' | 'card' | 'transfer' | 'credit', cashReceived: number, tipAmount?: number, orderType?: 'mesa' | 'llevar' | 'domicilio', clientId?: string) => { success: boolean; change: number; sale?: Sale };
+  processCheckout: (paymentMethod: 'cash' | 'card' | 'transfer' | 'credit' | 'datafono', cashReceived: number, tipAmount?: number, orderType?: 'mesa' | 'llevar' | 'domicilio', clientId?: string) => { success: boolean; change: number; sale?: Sale };
   
   // Inventory Actions
   addProduct: (product: Omit<Product, 'id'>) => void;
@@ -763,6 +763,18 @@ export const usePOSStore = create<POSState>((set, get) => ({
         if (dbRegisters && dbRegisters.length > 0) {
           // set({ cashRegisters: dbRegisters }); // TODO: Add cashRegisters to POSState
         }
+
+        const dbClients = await (window as any).electronAPI.dbGetAllClients();
+        if (dbClients && dbClients.length > 0) set({ clients: dbClients });
+
+        const dbSuppliers = await (window as any).electronAPI.dbGetAllSuppliers();
+        if (dbSuppliers && dbSuppliers.length > 0) set({ suppliers: dbSuppliers });
+
+        const dbQuotes = await (window as any).electronAPI.dbGetAllQuotes();
+        if (dbQuotes && dbQuotes.length > 0) set({ quotes: dbQuotes });
+
+        const dbPurchaseOrders = await (window as any).electronAPI.dbGetAllPurchaseOrders();
+        if (dbPurchaseOrders && dbPurchaseOrders.length > 0) set({ purchaseOrders: dbPurchaseOrders });
       } catch (e) {
         console.error('Error hydrating store from DB', e);
       }
@@ -901,6 +913,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
     set(state => ({ purchaseOrders: [newOrder, ...state.purchaseOrders] }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSavePurchaseOrder(newOrder);
+    }
     get().addLog(`Orden de compra creada: ${newOrder.supplierName} - Total: ${newOrder.total}`, 'Compras');
   },
 
@@ -912,11 +927,15 @@ export const usePOSStore = create<POSState>((set, get) => ({
     order.items.forEach(item => {
       get().adjustStock(item.productId, item.quantity, 'in', `Recepción de OC: ${order.id}`);
     });
+    const updatedOrder = { ...order, status: 'received' as const, receivedAt: new Date().toISOString() };
     set(state => ({
       purchaseOrders: state.purchaseOrders.map(o =>
-        o.id === orderId ? { ...o, status: 'received' as const, receivedAt: new Date().toISOString() } : o
+        o.id === orderId ? updatedOrder : o
       )
     }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSavePurchaseOrder(updatedOrder);
+    }
     get().addLog(`Orden de compra ${orderId} recibida y stock actualizado.`, 'Compras');
   },
 
@@ -2013,6 +2032,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
       visitsCount: 0,
     };
     set(state => ({ clients: [...state.clients, newClient] }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSaveClient(newClient);
+    }
     get().addLog(`Cliente registrado: ${client.name}`, 'Clientes');
   },
 
@@ -2020,6 +2042,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
     set(state => ({
       clients: state.clients.map(c => c.id === client.id ? client : c)
     }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSaveClient(client);
+    }
     get().addLog(`Cliente actualizado: ${client.name}`, 'Clientes');
   },
 
@@ -2028,6 +2053,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
     set(state => ({
       clients: state.clients.filter(c => c.id !== clientId)
     }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbDeleteClient(clientId);
+    }
     get().addLog(`Cliente eliminado: ${client?.name || clientId}`, 'Clientes');
   },
 
@@ -2038,6 +2066,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
       totalPurchases: 0
     };
     set(state => ({ suppliers: [...state.suppliers, newSupplier] }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSaveSupplier(newSupplier);
+    }
     get().addLog(`Proveedor registrado: ${supplier.name}`, 'Proveedores');
   },
 
@@ -2045,6 +2076,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
     set(state => ({
       suppliers: state.suppliers.map(s => s.id === supplier.id ? supplier : s)
     }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSaveSupplier(supplier);
+    }
     get().addLog(`Proveedor actualizado: ${supplier.name}`, 'Proveedores');
   },
 
@@ -2053,6 +2087,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
     set(state => ({
       suppliers: state.suppliers.filter(s => s.id !== supplierId)
     }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbDeleteSupplier(supplierId);
+    }
     get().addLog(`Proveedor eliminado: ${supplier?.name || supplierId}`, 'Proveedores');
   },
 
@@ -2105,6 +2142,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
     };
 
     set(state => ({ quotes: [...state.quotes, newQuote] }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSaveQuote(newQuote);
+    }
     get().addLog(`Cotización creada: ${code} para ${clientName}`, 'Cotizaciones');
   },
 
@@ -2113,14 +2153,19 @@ export const usePOSStore = create<POSState>((set, get) => ({
     const quote = quotes.find(q => q.id === quoteId);
     if (!quote || quote.status === 'converted') return;
 
+    const updatedQuote = { ...quote, status: 'converted' as const };
+    
     // Load items into active cart
     set(state => ({
       activeCarts: {
         ...state.activeCarts,
         [currentModule]: quote.items
       },
-      quotes: state.quotes.map(q => q.id === quoteId ? { ...q, status: 'converted' as const } : q)
+      quotes: state.quotes.map(q => q.id === quoteId ? updatedQuote : q)
     }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbSaveQuote(updatedQuote);
+    }
 
     get().addLog(`Cotización ${quote.code} cargada al carrito de venta`, 'Cotizaciones');
   },
@@ -2130,6 +2175,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
     set(state => ({
       quotes: state.quotes.filter(q => q.id !== quoteId)
     }));
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      (window as any).electronAPI.dbDeleteQuote(quoteId);
+    }
     get().addLog(`Cotización eliminada: ${quote?.code || quoteId}`, 'Cotizaciones');
   },
 

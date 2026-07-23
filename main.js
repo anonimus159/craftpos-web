@@ -31,6 +31,22 @@ function initDB() {
       date TEXT,
       data TEXT
     );
+    CREATE TABLE IF NOT EXISTS clients (
+      id TEXT PRIMARY KEY,
+      data TEXT
+    );
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id TEXT PRIMARY KEY,
+      data TEXT
+    );
+    CREATE TABLE IF NOT EXISTS quotes (
+      id TEXT PRIMARY KEY,
+      data TEXT
+    );
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id TEXT PRIMARY KEY,
+      data TEXT
+    );
   `);
 }
 
@@ -85,6 +101,98 @@ ipcMain.handle('db-get-registers', () => {
     const rows = db.prepare('SELECT data FROM registers ORDER BY date DESC').all();
     return rows.map(r => JSON.parse(r.data));
   } catch(e) { return []; }
+});
+
+// Clients
+ipcMain.handle('db-get-all-clients', () => {
+  try {
+    const rows = db.prepare('SELECT data FROM clients').all();
+    return rows.map(r => JSON.parse(r.data));
+  } catch(e) { return []; }
+});
+
+ipcMain.handle('db-save-client', (event, client) => {
+  try {
+    const stmt = db.prepare('INSERT OR REPLACE INTO clients (id, data) VALUES (?, ?)');
+    stmt.run(client.id, JSON.stringify(client));
+    return true;
+  } catch(e) { return false; }
+});
+
+ipcMain.handle('db-delete-client', (event, id) => {
+  try {
+    db.prepare('DELETE FROM clients WHERE id = ?').run(id);
+    return true;
+  } catch(e) { return false; }
+});
+
+// Suppliers
+ipcMain.handle('db-get-all-suppliers', () => {
+  try {
+    const rows = db.prepare('SELECT data FROM suppliers').all();
+    return rows.map(r => JSON.parse(r.data));
+  } catch(e) { return []; }
+});
+
+ipcMain.handle('db-save-supplier', (event, supplier) => {
+  try {
+    const stmt = db.prepare('INSERT OR REPLACE INTO suppliers (id, data) VALUES (?, ?)');
+    stmt.run(supplier.id, JSON.stringify(supplier));
+    return true;
+  } catch(e) { return false; }
+});
+
+ipcMain.handle('db-delete-supplier', (event, id) => {
+  try {
+    db.prepare('DELETE FROM suppliers WHERE id = ?').run(id);
+    return true;
+  } catch(e) { return false; }
+});
+
+// Quotes
+ipcMain.handle('db-get-all-quotes', () => {
+  try {
+    const rows = db.prepare('SELECT data FROM quotes').all();
+    return rows.map(r => JSON.parse(r.data));
+  } catch(e) { return []; }
+});
+
+ipcMain.handle('db-save-quote', (event, quote) => {
+  try {
+    const stmt = db.prepare('INSERT OR REPLACE INTO quotes (id, data) VALUES (?, ?)');
+    stmt.run(quote.id, JSON.stringify(quote));
+    return true;
+  } catch(e) { return false; }
+});
+
+ipcMain.handle('db-delete-quote', (event, id) => {
+  try {
+    db.prepare('DELETE FROM quotes WHERE id = ?').run(id);
+    return true;
+  } catch(e) { return false; }
+});
+
+// Purchase Orders
+ipcMain.handle('db-get-all-purchase-orders', () => {
+  try {
+    const rows = db.prepare('SELECT data FROM purchase_orders').all();
+    return rows.map(r => JSON.parse(r.data));
+  } catch(e) { return []; }
+});
+
+ipcMain.handle('db-save-purchase-order', (event, order) => {
+  try {
+    const stmt = db.prepare('INSERT OR REPLACE INTO purchase_orders (id, data) VALUES (?, ?)');
+    stmt.run(order.id, JSON.stringify(order));
+    return true;
+  } catch(e) { return false; }
+});
+
+ipcMain.handle('db-delete-purchase-order', (event, id) => {
+  try {
+    db.prepare('DELETE FROM purchase_orders WHERE id = ?').run(id);
+    return true;
+  } catch(e) { return false; }
 });
 
 ipcMain.handle('get-printers', async (event) => {
@@ -212,7 +320,7 @@ function createWindow() {
       webSecurity: false,
     },
     title: 'CraftPOS - Sistema de Punto de Venta',
-    icon: path.join(__dirname, 'public', 'craftpos_icon.ico'),
+    icon: path.join(__dirname, 'public', 'craftpos_icon.png'),
     autoHideMenuBar: true,
     backgroundColor: '#FAF6EE',
     show: false,
@@ -224,10 +332,12 @@ function createWindow() {
     win.maximize();
   });
 
-  // Intercept downloads and save to Downloads folder automatically
+  // Allow downloads to show the "Save As" dialog so the user knows they are exporting
   win.webContents.session.on('will-download', (event, item, webContents) => {
-    const defaultPath = path.join(app.getPath('downloads'), item.getFilename());
-    item.setSavePath(defaultPath);
+    // We intentionally do not use setSavePath so the native Save dialog appears.
+    // If you want it silent again, uncomment below:
+    // const defaultPath = path.join(app.getPath('downloads'), item.getFilename());
+    // item.setSavePath(defaultPath);
   });
 
   // Load the app

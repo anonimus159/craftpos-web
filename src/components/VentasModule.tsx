@@ -5,7 +5,7 @@ import {
   Search, Plus, Minus, Trash2, CreditCard, DollarSign, 
   Percent, Printer, RefreshCw, ShoppingBag, Eye, User, 
   AlertTriangle, Check, Layers, ChevronRight, Package,
-  HelpCircle, Zap, X, Keyboard, Award
+  HelpCircle, Zap, X, Keyboard, Award, Wifi
 } from 'lucide-react';
 
 export default function VentasModule() {
@@ -43,7 +43,8 @@ export default function VentasModule() {
   // Component states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('c-gen');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'credit' | 'datafono'>('cash');
+  const [isWaitingDatafono, setIsWaitingDatafono] = useState(false);
   const [cashReceived, setCashReceived] = useState<string>('');
   
   // Toast state
@@ -513,6 +514,22 @@ export default function VentasModule() {
       return;
     }
 
+    if (paymentMethod === 'datafono') {
+      setIsWaitingDatafono(true);
+      setTimeout(() => {
+        setIsWaitingDatafono(false);
+        const res = processCheckout('datafono', total);
+        if (res.success && res.sale) {
+          setCurrentSaleInvoice(res.sale);
+          setShowCheckoutModal(false);
+          setShowInvoiceModal(true);
+        } else {
+          showToast('Error al realizar el cobro. Asegúrese de abrir la caja.', 'error');
+        }
+      }, 3000);
+      return;
+    }
+
     const res = processCheckout(paymentMethod, cashVal);
     if (res.success && res.sale) {
       setCurrentSaleInvoice(res.sale);
@@ -530,13 +547,11 @@ export default function VentasModule() {
     if (res.success && res.sale) {
       setCurrentSaleInvoice(res.sale);
       setShowInvoiceModal(true);
-      // Play a quick register sound if needed (using simulated alert)
       addLog(`Cobro Rápido en Efectivo procesado.`, currentModule);
     } else {
       showToast('Error al realizar el cobro rápido. Asegúrese de que la caja esté abierta.', 'error');
     }
   };
-
   // Create Client
   const handleCreateClient = (e: React.FormEvent) => {
     e.preventDefault();
@@ -835,7 +850,7 @@ export default function VentasModule() {
                             min={0}
                             max={100}
                             onChange={(e) => {
-                              const disc = parseInt(e.target.value) || 0;
+                              const disc = e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0);
                               // Update items discount
                               const updatedCart = cartItems.map(i => 
                                 i.product.id === item.product.id ? { ...i, discountPercentage: Math.min(100, Math.max(0, disc)) } : i
@@ -957,7 +972,7 @@ export default function VentasModule() {
                   value={discountPercent}
                   min={0}
                   max={100}
-                  onChange={(e) => applyDiscount(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                  onChange={(e) => applyDiscount(Math.min(100, Math.max(0, e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0))))}
                   className="w-14 text-center bg-white border border-slate-200 rounded px-1.5 py-0.5 text-xs text-slate-800 font-bold font-mono outline-none"
                 />
               </div>
@@ -1140,7 +1155,7 @@ export default function VentasModule() {
                     type="number"
                     min={0}
                     defaultValue={2}
-                    onChange={(e) => updateTableGuests(selectedTableId!, parseInt(e.target.value) || 0)}
+                    onChange={(e) => updateTableGuests(selectedTableId!, e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0))}
                     className="w-12 text-center bg-white border border-slate-200 rounded text-xs text-slate-800 outline-none font-bold"
                   />
                 </div>
@@ -1227,8 +1242,8 @@ export default function VentasModule() {
               {/* Payment selector */}
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Método de Cobro</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['cash', 'card', 'transfer'] as const).map(method => (
+                <div className="grid grid-cols-4 gap-2">
+                  {(['cash', 'card', 'transfer', 'datafono'] as const).map(method => (
                     <button
                       key={method}
                       onClick={() => setPaymentMethod(method)}
@@ -1241,6 +1256,7 @@ export default function VentasModule() {
                       {method === 'cash' && <DollarSign className="w-4 h-4" />}
                       {method === 'card' && <CreditCard className="w-4 h-4" />}
                       {method === 'transfer' && <RefreshCw className="w-4 h-4" />}
+                      {method === 'datafono' && <Wifi className="w-4 h-4" />}
                       <span className="text-[10px] font-bold uppercase capitalize">{method}</span>
                     </button>
                   ))}
@@ -1268,20 +1284,30 @@ export default function VentasModule() {
               )}
             </div>
 
-            <div className="flex gap-3 justify-end mt-2">
-              <button
-                onClick={() => setShowCheckoutModal(false)}
-                className="px-4 py-2 border border-slate-200 hover:bg-white text-slate-500 rounded-xl text-xs font-bold cursor-pointer transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCheckoutSubmit}
-                className="px-5 py-2 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg"
-              >
-                Confirmar Pago
-              </button>
-            </div>
+            {isWaitingDatafono ? (
+              <div className="flex flex-col items-center justify-center py-6 gap-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                <p className="text-sm font-bold text-slate-600 animate-pulse text-center">
+                  Esperando que el cliente pase la tarjeta en el Datáfono...<br/>
+                  <span className="text-xs font-normal text-slate-400">(Integración Genérica Activa)</span>
+                </p>
+              </div>
+            ) : (
+              <div className="flex gap-3 justify-end mt-2">
+                <button
+                  onClick={() => setShowCheckoutModal(false)}
+                  className="px-4 py-2 border border-slate-200 hover:bg-white text-slate-500 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCheckoutSubmit}
+                  className="px-5 py-2 bg-gradient-to-tr from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg"
+                >
+                  Confirmar Pago
+                </button>
+              </div>
+            )}
 
           </div>
         </div>
@@ -1681,7 +1707,7 @@ export default function VentasModule() {
                   min={2}
                   max={20}
                   value={splitCount}
-                  onChange={(e) => setSplitCount(Math.max(2, parseInt(e.target.value) || 2))}
+                  onChange={(e) => setSplitCount(Math.max(2, e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 2)))}
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-mono text-center font-bold text-base outline-none"
                 />
               </div>
@@ -2075,8 +2101,8 @@ export default function VentasModule() {
 
       {/* KITCHEN DISPLAY VIEW */}
       {showKitchenDisplay && (
-        <div className="fixed inset-0 z-[100] bg-[#111111] flex flex-col p-6 overflow-y-auto">
-          <div className="flex justify-between items-center border-b border-zinc-800 pb-4 mb-5">
+        <div className="fixed inset-0 z-[100] flex flex-col p-6 overflow-y-auto" style={{ backgroundColor: '#0f172a' }}>
+          <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-5">
             <div>
               <h2 className="text-lg font-black text-white flex items-center gap-2">
                 <span>🍳 Pantalla de visualización de Cocina y Bar</span>

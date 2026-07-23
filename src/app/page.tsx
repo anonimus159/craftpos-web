@@ -1177,8 +1177,8 @@ export default function Home() {
 
   
 
-  // 3. Old sub-module login screen (when navigating to a business module inside the hub)
-  if (!isLoggedIn && currentModule !== 'hub') {
+  // 3. Global login screen (requires login even to view the hub)
+  if (!isLoggedIn) {
     return renderRegistrationScreen();
   }
 

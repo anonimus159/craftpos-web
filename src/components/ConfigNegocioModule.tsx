@@ -262,7 +262,7 @@ export default function ConfigNegocioModule() {
                 {form.taxEnabled && (
                   <div>
                     <label className={labelClass}>Tasa de Impuesto (%)</label>
-                    <input type="number" value={form.taxRate} onChange={e => setField('taxRate', Number(e.target.value))} className={inputClass} min={0} max={100} step={0.5} />
+                    <input type="number" value={form.taxRate} onChange={e => setField('taxRate', e.target.value === '' ? ('' as any) : Number(e.target.value))} className={inputClass} min={0} max={100} step={0.5} />
                   </div>
                 )}
               </div>

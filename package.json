@@ -8,8 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "electron-dev": "next build && electron .",
-    "dist": "next build && electron-builder",
+    "electron-dev": "node build-desktop.js && electron .",
+    "dist": "node build-desktop.js && electron-builder",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -45,6 +45,7 @@
     "appId": "com.craftpos.desktop",
     "productName": "CraftPOS",
     "copyright": "Copyright © 2026 CraftPOS",
+    "icon": "public/craftpos_icon.png",
     "directories": {
       "output": "dist"
     },

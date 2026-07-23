@@ -34,11 +34,11 @@ export default function CheckoutModal({ onClose, onSuccess }: CheckoutModalProps
         {/* Header */}
         <div className="bg-zinc-50 border-b border-zinc-200 p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="font-black text-zinc-900 tracking-tight">Caja Segura Stripe (Demo)</h2>
+              <h2 className="font-black text-zinc-900 tracking-tight">Caja Segura Wompi (Demo)</h2>
               <p className="text-xs font-semibold text-zinc-500">Adquiere tu Licencia Permanente</p>
             </div>
           </div>
@@ -88,12 +88,12 @@ export default function CheckoutModal({ onClose, onSuccess }: CheckoutModalProps
 
           {step === 2 && (
             <div className="flex flex-col gap-6 animate-in slide-in-from-right-8 duration-300">
-              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-bold text-yellow-800 text-sm">Simulador de Pago Seguro</h4>
-                  <p className="text-xs text-yellow-700 mt-1">
-                    Esto es una simulación de la pasarela de Stripe. Al hacer clic en Pagar, el servidor ficticio generará una licencia 100% válida.
+                  <h4 className="font-bold text-blue-800 text-sm">Simulador de Pago Seguro Wompi</h4>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Esto es una simulación de la pasarela de Wompi. Al hacer clic en Pagar, el servidor ficticio generará una licencia 100% válida.
                   </p>
                 </div>
               </div>
@@ -117,9 +117,9 @@ export default function CheckoutModal({ onClose, onSuccess }: CheckoutModalProps
                 <button 
                   disabled={loading}
                   onClick={handleSimulatePayment}
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg mt-2 flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg mt-2 flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Procesando Pago...' : 'Pagar de forma Segura'}
+                  {loading ? 'Procesando Pago con Wompi...' : 'Pagar con Wompi'}
                 </button>
               </div>
             </div>
@@ -130,7 +130,7 @@ export default function CheckoutModal({ onClose, onSuccess }: CheckoutModalProps
               <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4" />
               <h3 className="text-2xl font-black text-zinc-900 mb-2">¡Pago Exitoso!</h3>
               <p className="text-sm font-medium text-zinc-500 mb-6 max-w-md">
-                Tu pago ha sido procesado mediante Stripe Simulator. Tu servidor ha generado una licencia válida.
+                Tu pago ha sido procesado mediante Wompi Simulator. Tu servidor ha generado una licencia válida.
               </p>
               
               <div className="bg-zinc-100 border border-zinc-200 p-4 rounded-xl w-full max-w-sm mb-6">

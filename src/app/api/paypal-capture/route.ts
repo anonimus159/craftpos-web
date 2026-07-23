@@ -1,6 +1,5 @@
+export const dynamic = 'force-static';
 import { NextResponse } from 'next/server';
-
-export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { Resend } from 'resend';
 

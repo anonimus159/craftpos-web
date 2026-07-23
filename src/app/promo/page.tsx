@@ -422,7 +422,7 @@ export default function PromoLanding() {
                   POR RUBRO
                 </span>
                 <h3 className={`text-3xl font-black mt-4 mb-2 ${fredoka.className}`}>Plan Módulo</h3>
-                <p className="text-gray-500 font-medium text-sm mb-6">Licencia vitalicia para un solo rubro.</p>
+                <p className="text-gray-500 font-medium text-sm mb-6">Licencia vitalicia válida para 1 solo equipo (PC).</p>
                 <div className="mb-6 flex items-baseline gap-1">
                   <span className="text-4xl font-black">$75</span>
                   <span className="text-gray-500 font-bold text-sm">USD /único</span>
@@ -430,7 +430,8 @@ export default function PromoLanding() {
                 <ul className="space-y-3 font-bold text-sm border-t border-gray-100 pt-6">
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-orange-500" /> 1 Módulo comercial activo</li>
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-orange-500" /> Control de turnos de caja e IVA</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-orange-500" /> Licencia permanente de por vida</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-orange-500" /> Válida para 1 solo dispositivo</li>
+                  <li className="flex items-center gap-2 text-xs text-gray-500 italic ml-6">(*Para instalar en otro equipo debes comprar otra licencia)</li>
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-orange-500" /> Soporte técnico por correo</li>
                 </ul>
               </div>
@@ -465,15 +466,16 @@ export default function PromoLanding() {
                   NEGOCIO TOTAL
                 </span>
                 <h3 className={`text-3xl font-black mt-4 mb-2 ${fredoka.className}`}>Plan Pro Max</h3>
-                <p className="text-gray-500 font-medium text-sm mb-6">Todos los módulos desbloqueados para siempre.</p>
+                <p className="text-gray-500 font-medium text-sm mb-6">Todos los módulos desbloqueados de por vida para 1 solo equipo.</p>
                 <div className="mb-6 flex items-baseline gap-1 font-black">
                   <span className="text-4xl font-black text-black">$130</span>
                   <span className="text-gray-500 font-bold text-sm">USD /único</span>
                 </div>
                 <ul className="space-y-3 font-bold text-sm border-t border-black/10 pt-6">
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Los 5 Módulos liberados</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Multicajas, bodegas y sucursales</li>
-                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Licencia permanente de por vida</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Multicajas, bodegas y sucursales (Mismo equipo)</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Válida para 1 solo dispositivo</li>
+                  <li className="flex items-center gap-2 text-xs text-gray-500 italic ml-6">(*Equipos adicionales requieren licencias nuevas)</li>
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Soporte premium WhatsApp/Remoto</li>
                 </ul>
               </div>

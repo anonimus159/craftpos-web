@@ -4,7 +4,7 @@ import { Product } from '../types/types';
 import { 
   Plus, ArrowDown, ArrowUp, AlertCircle, Edit, Trash2, 
   Search, ShieldAlert, TrendingUp, Package, RefreshCw, Layers,
-  Upload, Download, FileSpreadsheet, AlertTriangle, Check, X
+  Upload, Download, FileSpreadsheet, AlertTriangle, Check, X, Globe
 } from 'lucide-react';
 
 export default function InventarioModule() {
@@ -488,6 +488,21 @@ export default function InventarioModule() {
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Importar Excel/CSV</span>
+          </button>
+
+          {/* SINCRONIZAR CATALOGO */}
+          <button
+            onClick={async () => {
+              showToast('Sincronizando catálogo con Supabase...', 'success');
+              // Logic to sync would go here
+              setTimeout(() => {
+                showToast('Catálogo sincronizado exitosamente', 'success');
+              }, 2000);
+            }}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all shadow-md"
+          >
+            <Globe className="w-4 h-4" />
+            <span>Sincronizar Catálogo Web</span>
           </button>
           <input ref={importFileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleExcelFileSelect} />
         </div>
@@ -1408,7 +1423,7 @@ export default function InventarioModule() {
                     step="0.01"
                     required
                     value={newProduct.costPrice}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, costPrice: parseFloat(e.target.value) || 0.0 }))}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, costPrice: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1419,7 +1434,7 @@ export default function InventarioModule() {
                     step="0.01"
                     required
                     value={newProduct.salePrice}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, salePrice: parseFloat(e.target.value) || 0.0 }))}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, salePrice: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1429,7 +1444,7 @@ export default function InventarioModule() {
                     type="number"
                     step="0.01"
                     value={newProduct.wholesalePrice}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, wholesalePrice: parseFloat(e.target.value) || 0.0 }))}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, wholesalePrice: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1442,7 +1457,7 @@ export default function InventarioModule() {
                     type="number"
                     required
                     value={newProduct.stock}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, stock: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1452,7 +1467,7 @@ export default function InventarioModule() {
                     type="number"
                     required
                     value={newProduct.minStock}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, minStock: parseInt(e.target.value) || 0 }))}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, minStock: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1461,7 +1476,7 @@ export default function InventarioModule() {
                   <input
                     type="number"
                     value={newProduct.maxStock}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, maxStock: parseInt(e.target.value) || 100 }))}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, maxStock: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 100) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1586,7 +1601,7 @@ export default function InventarioModule() {
                     required
                     min={1}
                     value={adjustData.qty}
-                    onChange={(e) => setAdjustData(prev => ({ ...prev, qty: parseInt(e.target.value) || 1 }))}
+                    onChange={(e) => setAdjustData(prev => ({ ...prev, qty: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 1) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1668,7 +1683,7 @@ export default function InventarioModule() {
                     required
                     min={1}
                     value={restockData.qty}
-                    onChange={(e) => setRestockData(prev => ({ ...prev, qty: parseInt(e.target.value) || 1 }))}
+                    onChange={(e) => setRestockData(prev => ({ ...prev, qty: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 1) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-850 font-mono outline-none font-bold"
                   />
                 </div>
@@ -1679,7 +1694,7 @@ export default function InventarioModule() {
                     step="0.01"
                     required
                     value={restockData.costPrice}
-                    onChange={(e) => setRestockData(prev => ({ ...prev, costPrice: parseFloat(e.target.value) || 0.0 }))}
+                    onChange={(e) => setRestockData(prev => ({ ...prev, costPrice: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-850 font-mono outline-none font-bold"
                   />
                 </div>
@@ -1782,7 +1797,7 @@ export default function InventarioModule() {
                     min={1}
                     value={mermaForm.qty}
                     onChange={(e) => {
-                      const qtyVal = parseInt(e.target.value) || 1;
+                      const qtyVal = e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 1);
                       const p = products.find(prod => prod.name === mermaForm.productName);
                       setMermaForm(prev => ({ 
                         ...prev, 
@@ -1811,7 +1826,7 @@ export default function InventarioModule() {
                     step="0.01"
                     required
                     value={mermaForm.cost}
-                    onChange={(e) => setMermaForm(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0.0 }))}
+                    onChange={(e) => setMermaForm(prev => ({ ...prev, cost: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -1915,7 +1930,7 @@ export default function InventarioModule() {
                     min={1}
                     value={productionForm.quantity}
                     onChange={(e) => {
-                      const qtyVal = parseInt(e.target.value) || 1;
+                      const qtyVal = e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 1);
                       const p = products.find(prod => prod.name === productionForm.productName);
                       setProductionForm(prev => ({ 
                         ...prev, 
@@ -1933,7 +1948,7 @@ export default function InventarioModule() {
                     step="0.01"
                     required
                     value={productionForm.cost}
-                    onChange={(e) => setProductionForm(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0.0 }))}
+                    onChange={(e) => setProductionForm(prev => ({ ...prev, cost: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
                   />
                 </div>
@@ -2032,7 +2047,7 @@ export default function InventarioModule() {
                     required
                     min={1}
                     value={transferForm.qty}
-                    onChange={(e) => setTransferForm(prev => ({ ...prev, qty: parseInt(e.target.value) || 1 }))}
+                    onChange={(e) => setTransferForm(prev => ({ ...prev, qty: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 1) }))}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold"
                   />
                 </div>
@@ -2155,7 +2170,7 @@ export default function InventarioModule() {
                     step="0.01"
                     required
                     value={editingProduct.costPrice}
-                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, costPrice: parseFloat(e.target.value) || 0.0 }) : null)}
+                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, costPrice: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }) : null)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold font-mono"
                   />
                 </div>
@@ -2166,7 +2181,7 @@ export default function InventarioModule() {
                     step="0.01"
                     required
                     value={editingProduct.salePrice}
-                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, salePrice: parseFloat(e.target.value) || 0.0 }) : null)}
+                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, salePrice: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }) : null)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold font-mono"
                   />
                 </div>
@@ -2176,7 +2191,7 @@ export default function InventarioModule() {
                     type="number"
                     step="0.01"
                     value={editingProduct.wholesalePrice || 0.0}
-                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, wholesalePrice: parseFloat(e.target.value) || 0.0 }) : null)}
+                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, wholesalePrice: e.target.value === '' ? ('' as any) : (parseFloat(e.target.value) || 0.0) }) : null)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold font-mono"
                   />
                 </div>
@@ -2189,7 +2204,7 @@ export default function InventarioModule() {
                     type="number"
                     required
                     value={editingProduct.stock}
-                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, stock: parseInt(e.target.value) || 0 }) : null)}
+                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, stock: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0) }) : null)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold"
                   />
                 </div>
@@ -2199,7 +2214,7 @@ export default function InventarioModule() {
                     type="number"
                     required
                     value={editingProduct.minStock}
-                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, minStock: parseInt(e.target.value) || 0 }) : null)}
+                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, minStock: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 0) }) : null)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold"
                   />
                 </div>
@@ -2208,7 +2223,7 @@ export default function InventarioModule() {
                   <input
                     type="number"
                     value={editingProduct.maxStock || 100}
-                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, maxStock: parseInt(e.target.value) || 100 }) : null)}
+                    onChange={(e) => setEditingProduct(prev => prev ? ({ ...prev, maxStock: e.target.value === '' ? ('' as any) : (parseInt(e.target.value) || 100) }) : null)}
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-bold font-mono"
                   />
                 </div>

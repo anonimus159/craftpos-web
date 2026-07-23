@@ -13,7 +13,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPrinters: () => ipcRenderer.invoke('get-printers'),
   printTicket: (html, printerName) => ipcRenderer.invoke('print-ticket', html, printerName),
   backupDatabase: () => ipcRenderer.invoke('db-backup'),
-  restoreDatabase: () => ipcRenderer.invoke('db-restore')
+  restoreDatabase: () => ipcRenderer.invoke('db-restore'),
+  
+  // Clients
+  dbGetAllClients: () => ipcRenderer.invoke('db-get-all-clients'),
+  dbSaveClient: (client) => ipcRenderer.invoke('db-save-client', client),
+  dbDeleteClient: (id) => ipcRenderer.invoke('db-delete-client', id),
+
+  // Suppliers
+  dbGetAllSuppliers: () => ipcRenderer.invoke('db-get-all-suppliers'),
+  dbSaveSupplier: (supplier) => ipcRenderer.invoke('db-save-supplier', supplier),
+  dbDeleteSupplier: (id) => ipcRenderer.invoke('db-delete-supplier', id),
+
+  // Quotes
+  dbGetAllQuotes: () => ipcRenderer.invoke('db-get-all-quotes'),
+  dbSaveQuote: (quote) => ipcRenderer.invoke('db-save-quote', quote),
+  dbDeleteQuote: (id) => ipcRenderer.invoke('db-delete-quote', id),
+
+  // Purchase Orders
+  dbGetAllPurchaseOrders: () => ipcRenderer.invoke('db-get-all-purchase-orders'),
+  dbSavePurchaseOrder: (order) => ipcRenderer.invoke('db-save-purchase-order', order),
+  dbDeletePurchaseOrder: (id) => ipcRenderer.invoke('db-delete-purchase-order', id)
 });
 
 window.addEventListener('DOMContentLoaded', () => {

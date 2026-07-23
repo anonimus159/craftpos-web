@@ -1,3 +1,4 @@
+export const dynamic = 'force-static';
 import { NextResponse } from 'next/server';
 
 const PAYPAL_API_BASE = (process.env.PAYPAL_API_URL || 'https://api-m.sandbox.paypal.com').trim();

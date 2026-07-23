@@ -41,10 +41,10 @@ const modulesRight = [
   {
     id: 'fruit' as StoreType,
     label: 'Heladería',
-    sub: 'Pesaje y Orgánicos',
+    sub: 'Postres y Sabores',
     bg: '#EEFFE6',
     hover: '#d5ffd1',
-    mascot: '/icon_fruteria_new.png',
+    mascot: '/icon_heladeria_new.jpg',
   },
   {
     id: 'business' as StoreType,
