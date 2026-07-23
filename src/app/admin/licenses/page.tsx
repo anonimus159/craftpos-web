@@ -16,6 +16,14 @@ export default function AdminLicensesPage() {
   const [newModule, setNewModule] = useState('restaurante');
   const [isGenerating, setIsGenerating] = useState(false);
   
+  // Edit License State
+  const [editingLicense, setEditingLicense] = useState<any>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editModule, setEditModule] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [editExpiresAt, setEditExpiresAt] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  
   // Authenticate
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +91,42 @@ export default function AdminLicensesPage() {
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const openEditModal = (lic: any) => {
+    setEditingLicense(lic);
+    setEditEmail(lic.buyer_email || lic.email || '');
+    setEditModule(lic.module || lic.targetModule || '');
+    setEditStatus(lic.status || 'active');
+    setEditExpiresAt(lic.expires_at ? new Date(lic.expires_at).toISOString().split('T')[0] : '');
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLicense) return;
+    setIsSavingEdit(true);
+    try {
+      if (editingLicense.id.startsWith('LIC-')) {
+        // Es un mock local, actualizar localmente
+        setLicenses(prev => prev.map(l => l.id === editingLicense.id ? { ...l, email: editEmail, targetModule: editModule, status: editStatus, expires_at: editExpiresAt } : l));
+      } else {
+        const { error } = await supabase.from('licenses').update({
+          buyer_email: editEmail,
+          module: editModule,
+          status: editStatus,
+          expires_at: editExpiresAt ? new Date(editExpiresAt).toISOString() : null
+        }).eq('id', editingLicense.id);
+        
+        if (error) throw error;
+        fetchLicenses();
+      }
+      setEditingLicense(null);
+    } catch (err) {
+      console.error("Error updating license:", err);
+      alert("Hubo un error al actualizar la licencia");
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -229,8 +273,8 @@ export default function AdminLicensesPage() {
                 {licenses.map((lic, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">{lic.id}</td>
-                    <td className="px-6 py-4 font-medium">{lic.email}</td>
-                    <td className="px-6 py-4 capitalize">{lic.targetModule}</td>
+                    <td className="px-6 py-4 font-medium">{lic.buyer_email || lic.email}</td>
+                    <td className="px-6 py-4 capitalize">{lic.module || lic.targetModule}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                         lic.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
@@ -241,9 +285,12 @@ export default function AdminLicensesPage() {
                         {lic.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{new Date(lic.expires_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">{lic.expires_at ? new Date(lic.expires_at).toLocaleDateString() : 'N/A'}</td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-indigo-600 hover:text-indigo-800 font-semibold text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => openEditModal(lic)}
+                        className="text-indigo-600 hover:text-indigo-800 font-semibold text-xs bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
                         Editar
                       </button>
                     </td>
@@ -262,6 +309,92 @@ export default function AdminLicensesPage() {
           </div>
         </div>
 
+        {/* Edit Modal */}
+        {editingLicense && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm transition-all">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
+              <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-indigo-500" />
+                  Editar Licencia {editingLicense.id?.split('-')[0]}
+                </h3>
+                <button 
+                  onClick={() => setEditingLicense(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <form onSubmit={handleEditSubmit} className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Correo del Cliente</label>
+                    <input 
+                      type="email" 
+                      required
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Módulo / Negocio</label>
+                    <select 
+                      value={editModule}
+                      onChange={(e) => setEditModule(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="restaurante">Restaurante</option>
+                      <option value="panaderia">Panadería</option>
+                      <option value="heladeria">Heladería</option>
+                      <option value="almacen">Almacén / Tienda</option>
+                      <option value="farmacia">Farmacia</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Estado</label>
+                    <select 
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="active">Activa</option>
+                      <option value="trial">Prueba (Trial)</option>
+                      <option value="suspended">Suspendida</option>
+                      <option value="expired">Expirada</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Fecha de Expiración</label>
+                    <input 
+                      type="date" 
+                      value={editExpiresAt}
+                      onChange={(e) => setEditExpiresAt(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-8 flex justify-end gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setEditingLicense(null)}
+                    className="px-5 py-2 rounded-xl text-slate-600 font-semibold hover:bg-slate-100 transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-xl transition-colors text-sm flex items-center gap-2"
+                  >
+                    {isSavingEdit ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Guardar Cambios
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
