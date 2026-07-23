@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { usePOSStore } from '../store/store';
 import { Product } from '../types/types';
-import { 
-  Plus, ArrowDown, ArrowUp, AlertCircle, Edit, Trash2, 
+import { Plus, ArrowDown, ArrowUp, AlertCircle, Edit, Trash2, 
   Search, ShieldAlert, TrendingUp, Package, RefreshCw, Layers,
-  Upload, Download, FileSpreadsheet, AlertTriangle, Check, X, Globe
+  Upload, Download, FileSpreadsheet, AlertTriangle, Check, X, Globe, Cloud
 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function InventarioModule() {
   const {
@@ -31,7 +31,8 @@ export default function InventarioModule() {
     addCategory,
     deleteCategory,
     renameCategory,
-    appConfig
+    appConfig,
+    licenseKey
   } = usePOSStore();
 
   const sym = appConfig.currencySymbol || "S/";
@@ -157,6 +158,55 @@ export default function InventarioModule() {
     fromWarehouse: 'Bodega Central',
     toWarehouse: 'Bodega Auxiliar'
   });
+
+  // Sync to Cloud State
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncCatalog = async () => {
+    if (!licenseKey) {
+      showToast('Error: No se encontró la licencia del negocio.', 'error');
+      return;
+    }
+    
+    setIsSyncing(true);
+    try {
+      // 1. Delete all previous catalog items for this license (clean sync)
+      const { error: deleteError } = await supabase
+        .from('public_catalog_products')
+        .delete()
+        .eq('license_key', licenseKey);
+        
+      if (deleteError) throw deleteError;
+
+      // 2. Prepare payload
+      const syncData = products.map(p => ({
+        license_key: licenseKey,
+        product_id: p.id,
+        name: p.name,
+        price: p.salePrice,
+        category: p.category || 'General',
+        image_url: p.imageUrl || null,
+        stock: p.stock || 0,
+        store_type: currentModule
+      }));
+
+      // 3. Insert new data
+      if (syncData.length > 0) {
+        const { error: insertError } = await supabase
+          .from('public_catalog_products')
+          .insert(syncData);
+          
+        if (insertError) throw insertError;
+      }
+      
+      showToast(`✓ Catálogo sincronizado: ${syncData.length} productos listos en la nube.`, 'success');
+    } catch (err: any) {
+      console.error("Error syncing catalog:", err);
+      showToast(`Error al sincronizar: ${err?.message || 'Revisa tu configuración de Supabase.'}`, 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Filter products by current active vertical
   const filteredProducts = products
@@ -492,17 +542,12 @@ export default function InventarioModule() {
 
           {/* SINCRONIZAR CATALOGO */}
           <button
-            onClick={async () => {
-              showToast('Sincronizando catálogo con Supabase...', 'success');
-              // Logic to sync would go here
-              setTimeout(() => {
-                showToast('Catálogo sincronizado exitosamente', 'success');
-              }, 2000);
-            }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all shadow-md"
+            onClick={handleSyncCatalog}
+            disabled={isSyncing}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all shadow-md"
           >
-            <Globe className="w-4 h-4" />
-            <span>Sincronizar Catálogo Web</span>
+            {isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+            <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Catálogo Web'}</span>
           </button>
           <input ref={importFileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleExcelFileSelect} />
         </div>

@@ -1,21 +1,34 @@
-import React from 'react';
-import { ShoppingBag, Phone, MapPin, Store } from 'lucide-react';
-import Link from 'next/link';
+"use client";
 
-export function generateStaticParams() {
-  return [{ storeId: '1' }];
-}
+import React, { useState, useEffect } from 'react';
+import { ShoppingBag, Phone, MapPin, Store, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function CatalogoPublicoPage({ params }: { params: { storeId: string } }) {
   const storeId = params.storeId || '1';
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Demo products (In a real app, this would be fetched from Supabase using storeId)
-  const products = [
-    { id: 1, name: 'Helado de Vainilla (Cono)', price: 2.50, category: 'Helados' },
-    { id: 2, name: 'Banana Split Especial', price: 5.50, category: 'Helados' },
-    { id: 3, name: 'Malteada de Fresa', price: 3.50, category: 'Bebidas' },
-    { id: 4, name: 'Pan de Queso (Docena)', price: 4.00, category: 'Panadería' },
-  ];
+  useEffect(() => {
+    async function fetchCatalog() {
+      try {
+        const { data, error } = await supabase
+          .from('public_catalog_products')
+          .select('*')
+          .eq('license_key', storeId)
+          .order('name');
+          
+        if (error) throw error;
+        setProducts(data || []);
+      } catch (err) {
+        console.error("Error fetching catalog:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchCatalog();
+  }, [storeId]);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -58,22 +71,48 @@ export default function CatalogoPublicoPage({ params }: { params: { storeId: str
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {products.map(product => (
-            <div key={product.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group">
-              <div className="h-40 bg-slate-100 flex items-center justify-center relative">
-                <ShoppingBag className="w-12 h-12 text-slate-300 group-hover:scale-110 transition-transform" />
-                <span className="absolute top-2 right-2 bg-white/80 backdrop-blur text-[10px] font-black uppercase px-2 py-1 rounded-md text-slate-600">
-                  {product.category}
-                </span>
-              </div>
-              <div className="p-4">
-                <h3 className="font-bold text-slate-800 text-lg leading-tight mb-1">{product.name}</h3>
-                <div className="text-indigo-600 font-black text-xl">${product.price.toFixed(2)}</div>
-              </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+            <RefreshCw className="w-8 h-8 animate-spin mb-4" />
+            <p>Cargando catálogo...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShoppingBag className="w-8 h-8 text-slate-300" />
             </div>
-          ))}
-        </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Catálogo Vacío</h3>
+            <p className="text-slate-500 max-w-sm mx-auto">Este negocio aún no ha sincronizado sus productos a la nube.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {products.map(product => (
+              <div key={product.id || product.product_id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group flex flex-col">
+                <div className="h-40 bg-slate-50 flex items-center justify-center relative overflow-hidden">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <ShoppingBag className="w-12 h-12 text-slate-200 group-hover:scale-110 transition-transform" />
+                  )}
+                  <span className="absolute top-2 right-2 bg-white/90 backdrop-blur shadow-sm text-[10px] font-black uppercase px-2.5 py-1 rounded-md text-slate-700">
+                    {product.category}
+                  </span>
+                </div>
+                <div className="p-5 flex-1 flex flex-col">
+                  <h3 className="font-bold text-slate-800 text-lg leading-tight mb-2 flex-1">{product.name}</h3>
+                  <div className="flex items-center justify-between mt-auto">
+                    <div className="text-indigo-600 font-black text-xl">${Number(product.price).toFixed(2)}</div>
+                    {product.stock > 0 ? (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Stock: {product.stock}</span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Agotado</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
       </main>
 
