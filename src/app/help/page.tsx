@@ -1,9 +1,11 @@
-import React from 'react';
+"use client";
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, ArrowLeft, BookOpen, MessageSquare, PlayCircle, TerminalSquare } from 'lucide-react';
+import { Search, ArrowLeft, BookOpen, MessageSquare, PlayCircle, TerminalSquare, X } from 'lucide-react';
 import FaqAccordion from '@/components/FaqAccordion';
 
 export default function HelpCenterPage() {
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-indigo-500 selection:text-white">
       
@@ -77,73 +79,56 @@ export default function HelpCenterPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Video Placeholder 1 */}
-            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
-              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=600" alt="Ventas" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
-                  <PlayCircle className="w-8 h-8 text-white ml-1" />
+            {[
+              {
+                title: '¿Cómo usar el Módulo de Ventas?',
+                desc: 'Aprende a cobrar rápidamente, agregar productos al carrito, aplicar descuentos y emitir tickets para tus clientes.',
+                time: '04:25',
+                img: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=600',
+                color: 'emerald',
+                url: 'https://www.youtube.com/embed/zpOULjyy-n8?autoplay=1'
+              },
+              {
+                title: 'Arqueo y Cierre de Caja',
+                desc: 'Descubre cómo iniciar un turno, registrar entradas/salidas de efectivo, y hacer un corte Z perfecto sin faltantes.',
+                time: '03:10',
+                img: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600',
+                color: 'indigo',
+                url: 'https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1'
+              },
+              {
+                title: 'Control de Inventario y Recetas',
+                desc: 'Cómo cargar insumos, crear productos compuestos (recetas) y manejar alertas de stock bajo automáticamente.',
+                time: '06:45',
+                img: 'https://images.unsplash.com/photo-1586528116311-ad8ed7c83a7f?auto=format&fit=crop&q=80&w=600',
+                color: 'amber',
+                url: 'https://www.youtube.com/embed/zpOULjyy-n8?autoplay=1'
+              },
+              {
+                title: 'Análisis y Dashboard',
+                desc: 'Interpreta los gráficos de ventas, productos más vendidos y comisiones para tomar mejores decisiones.',
+                time: '02:50',
+                img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=600',
+                color: 'blue',
+                url: 'https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1'
+              }
+            ].map((video, idx) => (
+              <div key={idx} onClick={() => setActiveVideo(video.url)} className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
+                <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
+                  <img src={video.img} alt={video.title} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
+                  <div className={`w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-${video.color}-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent`}>
+                    <PlayCircle className="w-8 h-8 text-white ml-1" />
+                  </div>
+                  <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
+                    {video.time}
+                  </div>
                 </div>
-                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
-                  04:25
-                </div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-emerald-600 transition-colors">¿Cómo usar el Módulo de Ventas?</h3>
-                <p className="text-sm text-slate-500 line-clamp-2">Aprende a cobrar rápidamente, agregar productos al carrito, aplicar descuentos y emitir tickets para tus clientes.</p>
-              </div>
-            </div>
-
-            {/* Video Placeholder 2 */}
-            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
-              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=600" alt="Caja" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
-                  <PlayCircle className="w-8 h-8 text-white ml-1" />
-                </div>
-                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
-                  03:10
-                </div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-indigo-600 transition-colors">Arqueo y Cierre de Caja</h3>
-                <p className="text-sm text-slate-500 line-clamp-2">Descubre cómo iniciar un turno, registrar entradas/salidas de efectivo, y hacer un corte Z perfecto sin faltantes.</p>
-              </div>
-            </div>
-            
-            {/* Video Placeholder 3 */}
-            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
-              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1586528116311-ad8ed7c83a7f?auto=format&fit=crop&q=80&w=600" alt="Inventario" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
-                  <PlayCircle className="w-8 h-8 text-white ml-1" />
-                </div>
-                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
-                  06:45
-                </div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-amber-600 transition-colors">Control de Inventario y Recetas</h3>
-                <p className="text-sm text-slate-500 line-clamp-2">Cómo cargar insumos, crear productos compuestos (recetas) y manejar alertas de stock bajo automáticamente.</p>
-              </div>
-            </div>
-
-            {/* Video Placeholder 4 */}
-            <div className="group rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-xl transition-all cursor-pointer">
-              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=600" alt="Reportes" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" />
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all z-10 border border-white/30 group-hover:border-transparent">
-                  <PlayCircle className="w-8 h-8 text-white ml-1" />
-                </div>
-                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md">
-                  02:50
+                <div className="p-5">
+                  <h3 className={`font-bold text-slate-900 text-lg mb-1 group-hover:text-${video.color}-600 transition-colors`}>{video.title}</h3>
+                  <p className="text-sm text-slate-500 line-clamp-2">{video.desc}</p>
                 </div>
               </div>
-              <div className="p-5">
-                <h3 className="font-bold text-slate-900 text-lg mb-1 group-hover:text-blue-600 transition-colors">Análisis y Dashboard</h3>
-                <p className="text-sm text-slate-500 line-clamp-2">Interpreta los gráficos de ventas, productos más vendidos y comisiones para tomar mejores decisiones.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -258,6 +243,26 @@ export default function HelpCenterPage() {
         </div>
 
       </div>
+
+      {/* Video Player Modal */}
+      {activeVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-all">
+          <div className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl shadow-2xl overflow-hidden border border-white/10">
+            <button 
+              onClick={() => setActiveVideo(null)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors border border-white/20"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <iframe 
+              src={activeVideo} 
+              className="w-full h-full" 
+              allow="autoplay; encrypted-media; picture-in-picture" 
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
