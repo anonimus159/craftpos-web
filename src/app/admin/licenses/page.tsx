@@ -68,9 +68,9 @@ export default function AdminLicensesPage() {
       
       setNewEmail('');
       fetchLicenses();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error generating license:", err);
-      alert("Hubo un error al generar la licencia");
+      alert(`Error al generar la licencia: ${err?.message || err?.details || 'Por favor verifica tu configuración de Supabase'}`);
     } finally {
       setIsGenerating(false);
     }
