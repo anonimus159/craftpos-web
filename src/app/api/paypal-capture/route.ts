@@ -118,8 +118,8 @@ export async function GET(req: Request) {
         }
       }
 
-      // Redirigir al cliente a promo con success y con el targetModule
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/promo?success=true&session_id=${token}`);
+      // Redirigir al cliente a la página de gracias con el session_id
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/gracias?session_id=${token}`);
     } else {
       console.error('PayPal capture error:', captureData);
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/promo?error=capture_failed`);
