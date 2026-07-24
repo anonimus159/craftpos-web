@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Mail, Download, Key, ArrowRight, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-export default function GraciasPage() {
+function GraciasContent() {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const sessionId = searchParams.get('session_id') || '';
@@ -123,5 +123,13 @@ export default function GraciasPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function GraciasPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FAF6EE] flex items-center justify-center font-bold text-black">Cargando...</div>}>
+      <GraciasContent />
+    </Suspense>
   );
 }
