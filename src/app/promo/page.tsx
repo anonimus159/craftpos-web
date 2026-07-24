@@ -423,9 +423,9 @@ export default function PromoLanding() {
                 </span>
                 <h3 className={`text-3xl font-black mt-4 mb-2 ${fredoka.className}`}>Plan Módulo</h3>
                 <p className="text-gray-500 font-medium text-sm mb-6">Licencia vitalicia válida para 1 solo equipo (PC).</p>
-                <div className="mb-6 flex items-baseline gap-1">
-                  <span className="text-4xl font-black">$75</span>
-                  <span className="text-gray-500 font-bold text-sm">USD /único</span>
+                <div className="mb-6 flex items-end gap-2">
+                  <span className="text-4xl font-black">$130</span>
+                  <span className="text-gray-500 font-bold mb-1">USD / Pago Único</span>
                 </div>
                 <ul className="space-y-3 font-bold text-sm border-t border-gray-100 pt-6">
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-orange-500" /> 1 Módulo comercial activo</li>
@@ -467,9 +467,9 @@ export default function PromoLanding() {
                 </span>
                 <h3 className={`text-3xl font-black mt-4 mb-2 ${fredoka.className}`}>Plan Pro Max</h3>
                 <p className="text-gray-500 font-medium text-sm mb-6">Todos los módulos desbloqueados de por vida para 1 solo equipo.</p>
-                <div className="mb-6 flex items-baseline gap-1 font-black">
-                  <span className="text-4xl font-black text-black">$130</span>
-                  <span className="text-gray-500 font-bold text-sm">USD /único</span>
+                <div className="mb-6 flex items-end gap-2 font-black">
+                  <span className="text-4xl font-black text-black">$250</span>
+                  <span className="text-gray-500 font-bold mb-1">USD / Pago Único</span>
                 </div>
                 <ul className="space-y-3 font-bold text-sm border-t border-black/10 pt-6">
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Los 5 Módulos liberados</li>

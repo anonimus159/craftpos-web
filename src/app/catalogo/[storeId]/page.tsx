@@ -1,34 +1,25 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Phone, MapPin, Store, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { ShoppingBag, Phone, MapPin, Store } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
-export default function CatalogoPublicoPage({ params }: { params: { storeId: string } }) {
-  const storeId = params.storeId || '1';
-  const [products, setProducts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const revalidate = 60; // ISR cache every 60 seconds
 
-  useEffect(() => {
-    async function fetchCatalog() {
-      try {
-        const { data, error } = await supabase
-          .from('public_catalog_products')
-          .select('*')
-          .eq('license_key', storeId)
-          .order('name');
-          
-        if (error) throw error;
-        setProducts(data || []);
-      } catch (err) {
-        console.error("Error fetching catalog:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchCatalog();
-  }, [storeId]);
+export default async function CatalogoPublicoPage({ params }: { params: { storeId: string } }) {
+  const storeId = params.storeId || '1';
+  
+  // Fetch from Supabase directly in the server component
+  const { data: products, error } = await supabase
+    .from('public_catalog_products')
+    .select('*')
+    .eq('license_key', storeId)
+    .order('name');
+    
+  if (error) {
+    console.error("Error fetching catalog for store:", storeId, error);
+  }
+  
+  const catalog = products || [];
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -71,12 +62,7 @@ export default function CatalogoPublicoPage({ params }: { params: { storeId: str
         </div>
 
         {/* Product Grid */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-            <RefreshCw className="w-8 h-8 animate-spin mb-4" />
-            <p>Cargando catálogo...</p>
-          </div>
-        ) : products.length === 0 ? (
+        {catalog.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <ShoppingBag className="w-8 h-8 text-slate-300" />
@@ -86,7 +72,7 @@ export default function CatalogoPublicoPage({ params }: { params: { storeId: str
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {products.map(product => (
+            {catalog.map((product: any) => (
               <div key={product.id || product.product_id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group flex flex-col">
                 <div className="h-40 bg-slate-50 flex items-center justify-center relative overflow-hidden">
                   {product.image_url ? (

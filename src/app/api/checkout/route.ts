@@ -7,12 +7,12 @@ const PAYPAL_CLIENT_SECRET = (process.env.PAYPAL_CLIENT_SECRET || '').trim();
 
 // Definimos los precios (en centavos USD)
 const PRICES: Record<string, number> = {
-  restaurante: 7500, // $75.00
-  farmacia: 7500,    // $75.00
-  panaderia: 7500,   // $75.00
-  heladeria: 7500,    // $75.00
-  almacen: 7500,     // $75.00
-  all: 13000,         // $130.00 (Promo todos los módulos)
+  restaurante: 13000, // $130.00
+  farmacia: 13000,    // $130.00
+  panaderia: 13000,   // $130.00
+  heladeria: 13000,   // $130.00
+  almacen: 13000,     // $130.00
+  all: 25000,         // $250.00 (Promo todos los módulos)
 };
 
 const NAMES: Record<string, string> = {
