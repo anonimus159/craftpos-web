@@ -424,8 +424,8 @@ export default function PromoLanding() {
                 <h3 className={`text-3xl font-black mt-4 mb-2 ${fredoka.className}`}>Plan Módulo</h3>
                 <p className="text-gray-500 font-medium text-sm mb-6">Licencia vitalicia válida para 1 solo equipo (PC).</p>
                 <div className="mb-6 flex items-end gap-2">
-                  <span className="text-4xl font-black">$130</span>
-                  <span className="text-gray-500 font-bold mb-1">USD / Pago Único</span>
+                  <span className="text-4xl font-black">$519.999</span>
+                  <span className="text-gray-500 font-bold mb-1">COP / Pago Único</span>
                 </div>
                 <ul className="space-y-3 font-bold text-sm border-t border-gray-100 pt-6">
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-orange-500" /> 1 Módulo comercial activo</li>
@@ -436,19 +436,16 @@ export default function PromoLanding() {
                 </ul>
               </div>
               <button 
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/checkout', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ targetModule: 'restaurante' })
-                    });
-                    const data = await res.json();
-                    if (data.url) window.location.href = data.url;
-                    else alert('Error: ' + data.error);
-                  } catch (e) {
-                    alert('Error iniciando pago');
+                onClick={() => {
+                  const pubKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
+                  if (!pubKey) {
+                    alert('Por favor configura NEXT_PUBLIC_WOMPI_PUBLIC_KEY');
+                    return;
                   }
+                  const amount = 51999900;
+                  const reference = `MOD-basico-${Date.now()}`;
+                  const redirectUrl = `${window.location.origin}/api/wompi-capture?moduleType=basico`;
+                  window.location.href = `https://checkout.wompi.co/p/?public-key=${pubKey}&currency=COP&amount-in-cents=${amount}&reference=${reference}&redirect-url=${encodeURIComponent(redirectUrl)}`;
                 }}
                 className="w-full text-center mt-8 bg-gray-100 hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl border-[2px] border-black shadow-[3px_3px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all block text-sm"
               >
@@ -468,8 +465,8 @@ export default function PromoLanding() {
                 <h3 className={`text-3xl font-black mt-4 mb-2 ${fredoka.className}`}>Plan Pro Max</h3>
                 <p className="text-gray-500 font-medium text-sm mb-6">Todos los módulos desbloqueados de por vida para 1 solo equipo.</p>
                 <div className="mb-6 flex items-end gap-2 font-black">
-                  <span className="text-4xl font-black text-black">$250</span>
-                  <span className="text-gray-500 font-bold mb-1">USD / Pago Único</span>
+                  <span className="text-4xl font-black text-black">$999.900</span>
+                  <span className="text-gray-500 font-bold mb-1">COP / Pago Único</span>
                 </div>
                 <ul className="space-y-3 font-bold text-sm border-t border-black/10 pt-6">
                   <li className="flex items-center gap-2"><Check className="w-4 h-4 text-[#D92B75]" /> Los 5 Módulos liberados</li>
@@ -480,19 +477,16 @@ export default function PromoLanding() {
                 </ul>
               </div>
               <button 
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/checkout', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ targetModule: 'all' })
-                    });
-                    const data = await res.json();
-                    if (data.url) window.location.href = data.url;
-                    else alert('Error: ' + data.error);
-                  } catch (e) {
-                    alert('Error iniciando pago');
+                onClick={() => {
+                  const pubKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
+                  if (!pubKey) {
+                    alert('Por favor configura NEXT_PUBLIC_WOMPI_PUBLIC_KEY');
+                    return;
                   }
+                  const amount = 99990000;
+                  const reference = `MOD-all-${Date.now()}`;
+                  const redirectUrl = `${window.location.origin}/api/wompi-capture?moduleType=all`;
+                  window.location.href = `https://checkout.wompi.co/p/?public-key=${pubKey}&currency=COP&amount-in-cents=${amount}&reference=${reference}&redirect-url=${encodeURIComponent(redirectUrl)}`;
                 }}
                 className="w-full text-center mt-8 bg-[#D92B75] hover:bg-[#c22466] !text-white font-bold py-3.5 rounded-xl border-[2px] border-black shadow-[3px_3px_0px_#000] hover:shadow-[1px_1px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all block text-sm"
               >
