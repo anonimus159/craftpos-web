@@ -101,7 +101,7 @@ function ModuleButton({
 export default function HubView({ setActiveTab }: HubViewProps) {
   const { setModule, operatorName, userRole, logout, isDemoMode, exitDemoMode, systemVersion } = usePOSStore();
   const [showAbout, setShowAbout] = useState(false);
-  const goTo = (id: StoreType) => { setModule(id); setActiveTab('ventas'); };
+  const goTo = (id: StoreType, tab: string = 'ventas') => { setModule(id); setActiveTab(tab); };
 
   return (
     <div className="w-full flex flex-col h-[82vh] max-w-[1400px] mx-auto border-[3px] border-black rounded-[2rem] bg-[#FAF6EE] shadow-[8px_8px_0px_#000] overflow-hidden font-sans">
@@ -131,23 +131,48 @@ export default function HubView({ setActiveTab }: HubViewProps) {
           ))}
         </div>
 
-        {/* CENTER — Logo */}
-        <div className="lg:col-span-2 bg-[#FFFCEB] border-[3px] border-black rounded-3xl flex flex-col justify-center items-center px-6 py-4 text-center shadow-[5px_5px_0px_#000]">
+        {/* CENTER — Logo & Direct Action Shortcuts */}
+        <div className="lg:col-span-2 bg-[#FFFCEB] border-[3px] border-black rounded-3xl flex flex-col justify-between items-center px-6 py-4 text-center shadow-[5px_5px_0px_#000]">
           <div className="select-none flex flex-col items-center justify-center w-full">
             <img
               src="/logo_sin_nombre.png"
               alt="CraftPOS Logo"
               className="w-auto h-auto object-contain drop-shadow-md"
-              style={{ maxHeight: '180px', mixBlendMode: 'multiply' }}
+              style={{ maxHeight: '130px', mixBlendMode: 'multiply' }}
             />
-            <h2 className="text-4xl font-black text-black tracking-tighter mt-2 uppercase" style={{ fontFamily: 'system-ui, sans-serif' }}>CraftPOS</h2>
+            <h2 className="text-3xl font-black text-black tracking-tighter mt-1 uppercase" style={{ fontFamily: 'system-ui, sans-serif' }}>CraftPOS</h2>
+            <strong className="text-xs font-black tracking-wide uppercase text-[#D92B75] mt-0.5">Sistema Punto de Venta PRO</strong>
           </div>
-          <div className="flex flex-col gap-1 text-black text-xs font-bold leading-relaxed mt-2">
-            <strong className="text-base font-black tracking-wide uppercase text-[#D92B75]">Sistema Punto de Venta</strong>
-            <span>Bogotá D.C. Colombia</span>
-            <span>Tel: 3232313781</span>
-            <div className="flex justify-center mt-3">
-              <span className="text-[#D92B75] font-black text-xs bg-white border-[2.5px] border-black px-5 py-2 rounded-full shadow-[3px_3px_0px_#000] uppercase tracking-wide">
+
+          {/* Quick Access Badges / Action Buttons */}
+          <div className="w-full flex flex-col gap-2 my-2">
+            <p className="text-[11px] font-black uppercase text-slate-700 tracking-wider">Acceso Rápido a Novedades:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+              <button
+                onClick={() => goTo('business', 'configuracion')}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] py-2 px-2.5 rounded-xl border-[2px] border-black shadow-[2px_2px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>🔄</span> <span>Actualizaciones</span>
+              </button>
+              <button
+                onClick={() => goTo('business', 'reportes')}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] py-2 px-2.5 rounded-xl border-[2px] border-black shadow-[2px_2px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>📊</span> <span>Reportes Caja</span>
+              </button>
+              <button
+                onClick={() => goTo('business', 'inventario')}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] py-2 px-2.5 rounded-xl border-[2px] border-black shadow-[2px_2px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>📦</span> <span>Carga Masiva</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-0.5 text-black text-[11px] font-bold leading-tight">
+            <span>Bogotá D.C. Colombia · Tel: 3232313781</span>
+            <div className="flex justify-center mt-1">
+              <span className="text-[#D92B75] font-black text-[10px] bg-white border-[2px] border-black px-3 py-1 rounded-full shadow-[2px_2px_0px_#000] uppercase tracking-wide">
                 Creado por Nelson Páez @ 2026
               </span>
             </div>
