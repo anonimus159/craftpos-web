@@ -311,3 +311,26 @@ export interface PurchaseOrder {
   total: number;
   userId: string;
 }
+
+export interface SystemUpdatePackage {
+  packageId: string;
+  version: string;
+  releaseDate: string;
+  author: string;
+  title: string;
+  description: string;
+  changelog: string[];
+  moduleUpdates?: Record<string, boolean>;
+  newCategories?: string[];
+  companyPatch?: Record<string, any>;
+  patchChecksum: string;
+}
+
+export interface UpdateLogEntry {
+  id: string;
+  version: string;
+  installedAt: string;
+  installedBy: string;
+  title: string;
+  status: 'success' | 'failed';
+}

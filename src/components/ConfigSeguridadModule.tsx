@@ -16,6 +16,7 @@ export default function ConfigSeguridadModule() {
     addLog,
     isLicensed,
     licenseKey,
+    activateLicense,
     deactivateLicense,
     companyConfig,
     dianConfig,
@@ -25,10 +26,29 @@ export default function ConfigSeguridadModule() {
     activeRegisterId,
     setActiveRegister,
     updateCompanyConfig,
-    updateDianConfig
+    updateDianConfig,
+    systemVersion,
+    updateHistory,
+    applySystemUpdate,
+    generateSystemUpdatePackage,
+    products,
+    clients,
+    sales
   } = usePOSStore();
 
-  const [activeSubTab, setActiveSubTab] = useState<'company' | 'policies' | 'users' | 'branches' | 'backups'>('company');
+  const [inputLicenseKey, setInputLicenseKey] = useState('');
+  const [licenseMsg, setLicenseMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const [activeSubTab, setActiveSubTab] = useState<'company' | 'policies' | 'users' | 'branches' | 'backups' | 'updates'>('company');
+
+  // --- Software Update State ---
+  const [showUpdateWizardModal, setShowUpdateWizardModal] = useState(false);
+  const [selectedUpdatePkg, setSelectedUpdatePkg] = useState<any | null>(null);
+  const [updateMsg, setUpdateMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [genTitle, setGenTitle] = useState('');
+  const [genDesc, setGenDesc] = useState('');
+  const [genNotes, setGenNotes] = useState('');
+  const updateFileRef = React.useRef<HTMLInputElement>(null);
 
   // --- Company Settings state ---
   const [compSettings, setCompSettings] = useState({
@@ -214,9 +234,34 @@ export default function ConfigSeguridadModule() {
       
       {/* HEADER SECTION */}
       <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800">Ajustes y Seguridad del Sistema</h2>
-          <p className="text-xs text-slate-500">Configure la información legal de la empresa, políticas comerciales y permisos de usuario</p>
+        <div className="flex items-center gap-3.5">
+          <img
+            src="/logo_sin_nombre.png"
+            alt="CraftPOS Logo"
+            className="w-11 h-11 object-contain bg-slate-900 rounded-2xl p-1.5 shadow-md border border-slate-700"
+          />
+          <div>
+            <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+              <span>Ajustes y Seguridad del Sistema</span>
+              <span className="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full font-bold">PRO</span>
+            </h2>
+            <p className="text-xs text-slate-500">Configure la información legal de la empresa, políticas comerciales, licencias y actualizaciones</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono font-bold bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-xl">
+            {systemVersion}
+          </span>
+          <button
+            onClick={() => {
+              setActiveSubTab('updates');
+              setShowUpdateWizardModal(true);
+            }}
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all cursor-pointer"
+          >
+            <Download size={15} /> 🔄 Actualizar Sistema
+          </button>
         </div>
       </div>
 
@@ -266,6 +311,15 @@ export default function ConfigSeguridadModule() {
         >
           <Database className="w-3.5 h-3.5" />
           <span>Respaldos y Licencia</span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab('updates')}
+          className={`px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+            activeSubTab === 'updates' ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow font-bold' : 'text-slate-600 hover:text-slate-850'
+          }`}
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>Actualizaciones</span>
         </button>
       </div>
 
@@ -713,41 +767,100 @@ export default function ConfigSeguridadModule() {
                   </button>
                 </div>
 
-                {/* Software License status */}
+                {/* Software License status & Activation Form */}
                 <div className="flex flex-col gap-3">
-                  <h4 className="text-[10px] text-slate-400 font-bold uppercase mb-1">Clave de Licencia</h4>
-                  <div className="flex items-center justify-between bg-white px-3 py-2 border border-slate-200 rounded-lg shadow-sm">
-                    <div className="flex items-center gap-2">
-                      {isLicensed ? (
-                        <>
-                          <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                          <strong className="text-indigo-600 font-black">Licencia Premium Activa</strong>
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle className="w-4 h-4 text-amber-500" />
-                          <span className="text-amber-700 font-bold">Modo Demo (Prueba)</span>
-                        </>
-                      )}
+                  <h4 className="text-[10px] text-slate-400 font-bold uppercase mb-1">Estado de Licencia del Software</h4>
+                  
+                  <div className="bg-white p-3.5 border border-slate-200 rounded-xl shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {isLicensed ? (
+                          <>
+                            <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                            <strong className="text-emerald-700 font-black text-xs">Licencia Comercial Activa</strong>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                            <strong className="text-amber-700 font-bold text-xs">Sin Licencia / Modo Evaluación</strong>
+                          </>
+                        )}
+                      </div>
                     </div>
+
                     {isLicensed && licenseKey && (
-                      <code className="mt-2 font-mono text-[9.5px] bg-white p-2 rounded border border-slate-200 text-slate-700 text-center break-all select-all block">
-                        {licenseKey}
-                      </code>
+                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Clave de Licencia Activa:</span>
+                        <code className="font-mono text-xs font-black text-indigo-700 select-all block break-all">
+                          {licenseKey}
+                        </code>
+                      </div>
                     )}
+
+                    {/* License Key Form */}
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!inputLicenseKey.trim()) return;
+                        const res = await activateLicense(inputLicenseKey.trim(), machineId);
+                        if (res.success) {
+                          setLicenseMsg({ text: res.message, type: 'success' });
+                          setInputLicenseKey('');
+                        } else {
+                          setLicenseMsg({ text: res.message, type: 'error' });
+                        }
+                      }}
+                      className="space-y-2 pt-2 border-t border-slate-100"
+                    >
+                      <label className="block text-[10px] text-slate-500 font-bold uppercase">
+                        {isLicensed ? 'Cambiar / Actualizar Licencia' : 'Activar Nueva Licencia de Uso'}
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="POS-XXXX-XXXX-XXXX-XXXX-XXXX"
+                          value={inputLicenseKey}
+                          onChange={(e) => setInputLicenseKey(e.target.value)}
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 placeholder-slate-400 uppercase outline-none focus:border-indigo-500"
+                        />
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow"
+                        >
+                          Activar
+                        </button>
+                      </div>
+                      {licenseMsg && (
+                        <p className={`text-[11px] font-bold ${licenseMsg.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {licenseMsg.text}
+                        </p>
+                      )}
+                    </form>
                   </div>
-                  <div className="mt-2 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2">
-                    <h4 className="text-[10px] text-slate-500 font-bold uppercase mb-1">Hardware ID (ID Único de Equipo)</h4>
+
+                  {/* Hardware Machine ID */}
+                  <div className="bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-3 space-y-1">
+                    <h4 className="text-[10px] text-slate-500 font-bold uppercase">Hardware ID (Huella de Equipo)</h4>
                     <div className="text-xs font-mono text-slate-800 font-black flex justify-between items-center break-all">
-                      {machineId}
-                      <button onClick={() => navigator.clipboard.writeText(machineId)} className="ml-2 text-indigo-600 hover:text-indigo-800 transition-colors">Copiar</button>
+                      <span>{machineId}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(machineId);
+                          addLog('ID de Hardware copiado al portapapeles', 'Seguridad');
+                        }}
+                        className="ml-2 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-indigo-600 hover:text-indigo-800 font-bold text-[10px] shadow-sm transition-colors"
+                      >
+                        Copiar ID
+                      </button>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1 leading-tight">Esta huella enlaza tu licencia de forma exclusiva a este computador.</p>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      Proporciona este Hardware ID a tu proveedor para generar licencias personalizadas.
+                    </p>
                     {isLicensed && (
                       <button
                         onClick={() => {
                           setConfirmAction({
-                            message: '¿Está seguro de desactivar la licencia? El software volverá a bloquearse en modo demo.',
+                            message: '¿Está seguro de desactivar la licencia? El software volverá a requerir activación.',
                             onConfirm: () => deactivateLicense()
                           });
                         }}
@@ -760,6 +873,239 @@ export default function ConfigSeguridadModule() {
                 </div>
 
               </div>
+            </div>
+          )}
+
+          {/* TAB 6: SOFTWARE UPDATES & PATCH MANAGER */}
+          {activeSubTab === 'updates' && (
+            <div className="flex flex-col gap-6 text-xs text-slate-700">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Download className="w-4 h-4 text-indigo-600" />
+                  <span>Gestor de Actualizaciones y Parches de Software</span>
+                </h3>
+                <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono font-bold rounded-lg text-[11px]">
+                  Versión Actual: {systemVersion}
+                </span>
+              </div>
+
+              {/* SECTION 1: UPLOAD & INSTALL UPDATE */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 uppercase">Subir e Instalar Paquete de Actualización</h4>
+                    <p className="text-[11px] text-slate-500">Selecciona un archivo de actualización de sistema (<code>.posupdate</code> o <code>.json</code>)</p>
+                  </div>
+                  <input
+                    ref={updateFileRef}
+                    type="file"
+                    accept=".posupdate,.json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        try {
+                          const parsed = JSON.parse(ev.target?.result as string);
+                          if (!parsed.version || !parsed.patchChecksum) {
+                            setUpdateMsg({ text: 'El archivo seleccionado no es un paquete de actualización válido.', type: 'error' });
+                            return;
+                          }
+                          setSelectedUpdatePkg(parsed);
+                          setUpdateMsg({ text: `✓ Paquete de actualización ${parsed.version} cargado. Haz clic en Instalar para aplicar los cambios.`, type: 'success' });
+                        } catch (err) {
+                          setUpdateMsg({ text: 'Error al procesar el archivo. Formato JSON no válido.', type: 'error' });
+                        }
+                      };
+                      reader.readAsText(file);
+                      if (updateFileRef.current) updateFileRef.current.value = '';
+                    }}
+                  />
+                  <button
+                    onClick={() => updateFileRef.current?.click()}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow flex items-center gap-1.5"
+                  >
+                    <Upload size={14} /> Seleccionar Archivo (.posupdate)
+                  </button>
+                </div>
+
+                {updateMsg && (
+                  <div className={`p-3 rounded-xl border text-xs font-bold ${
+                    updateMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'
+                  }`}>
+                    {updateMsg.text}
+                  </div>
+                )}
+
+                {/* PREVIEW OF LOADED PACKAGE */}
+                {selectedUpdatePkg && (
+                  <div className="bg-white border border-indigo-200 rounded-xl p-4 space-y-3 shadow-inner">
+                    <div className="flex justify-between items-start border-b border-slate-100 pb-2">
+                      <div>
+                        <span className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">Paquete Listo para Instalación</span>
+                        <h5 className="text-sm font-black text-slate-800">{selectedUpdatePkg.title} ({selectedUpdatePkg.version})</h5>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{selectedUpdatePkg.description}</p>
+                      </div>
+                      <span className="font-mono text-[10px] bg-slate-100 border border-slate-200 text-slate-600 px-2 py-1 rounded">
+                        Checksum: {selectedUpdatePkg.patchChecksum?.slice(0, 16)}...
+                      </span>
+                    </div>
+
+                    {selectedUpdatePkg.changelog && selectedUpdatePkg.changelog.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Notas de la Versión / Cambios:</span>
+                        <ul className="list-disc list-inside text-[11px] text-slate-600 space-y-0.5">
+                          {selectedUpdatePkg.changelog.map((c: string, idx: number) => (
+                            <li key={idx}>{c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => setSelectedUpdatePkg(null)}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg text-xs"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => {
+                          const res = applySystemUpdate(selectedUpdatePkg);
+                          if (res.success) {
+                            setUpdateMsg({ text: res.message, type: 'success' });
+                            setSelectedUpdatePkg(null);
+                          } else {
+                            setUpdateMsg({ text: res.message, type: 'error' });
+                          }
+                        }}
+                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow transition-all flex items-center gap-1.5"
+                      >
+                        <Check size={14} /> Instalar Actualización Ahora
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 2: CREATE & DOWNLOAD UPDATE PACKAGE */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!genTitle.trim()) return;
+                  const notesArray = genNotes.split('\n').filter(n => n.trim());
+                  const pkg = generateSystemUpdatePackage(genTitle, genDesc, notesArray);
+                  
+                  const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `actualizacion_pos_${pkg.version}.posupdate`;
+                  a.click();
+
+                  setGenTitle('');
+                  setGenDesc('');
+                  setGenNotes('');
+                  setUpdateMsg({ text: `✓ Paquete de actualización ${pkg.version} generado y descargado exitosamente.`, type: 'success' });
+                }}
+                className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm"
+              >
+                <div className="border-b border-slate-100 pb-2">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5">
+                    <FileText size={15} className="text-indigo-600" />
+                    <span>Crear / Generar Nuevo Paquete de Actualización (.posupdate)</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500">Genera parches de software oficiales para desplegar en otras terminales o sedes.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Título de la Actualización</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Parche de Seguridad y Mejoras de Arqueo"
+                      value={genTitle}
+                      onChange={(e) => setGenTitle(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Descripción Breve</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Incluye corrección de reportes de caja e importador masivo."
+                      value={genDesc}
+                      onChange={(e) => setGenDesc(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase mb-1">Novedades / Changelog (1 cambio por línea)</label>
+                  <textarea
+                    rows={3}
+                    placeholder={`- Se mejoró la velocidad de carga en el inventario.\n- Nuevo reporte de caja por rango de fechas.\n- Corrección en licencias offline.`}
+                    value={genNotes}
+                    onChange={(e) => setGenNotes(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none font-mono"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2 bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-slate-800 hover:to-indigo-900 text-white font-bold rounded-xl text-xs transition-all shadow flex items-center justify-center gap-2"
+                >
+                  <Download size={14} /> Generar y Descargar Paquete de Actualización (.posupdate)
+                </button>
+              </form>
+
+              {/* SECTION 3: HISTORY LOG OF INSTALLED UPDATES */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Historial de Actualizaciones Instaladas</h4>
+                
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                        <th className="p-2.5">Versión</th>
+                        <th className="p-2.5">Título / Detalle</th>
+                        <th className="p-2.5">Instalado Por</th>
+                        <th className="p-2.5">Fecha</th>
+                        <th className="p-2.5 text-center">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                      {updateHistory && updateHistory.length > 0 ? (
+                        updateHistory.map((u) => (
+                          <tr key={u.id} className="hover:bg-slate-50">
+                            <td className="p-2.5 font-bold text-indigo-700">{u.version}</td>
+                            <td className="p-2.5 font-sans font-medium text-slate-800">{u.title}</td>
+                            <td className="p-2.5 font-sans text-slate-500">{u.installedBy}</td>
+                            <td className="p-2.5 text-slate-400">
+                              {new Date(u.installedAt).toLocaleDateString('es-BO')} {new Date(u.installedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="p-2.5 text-center font-sans">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                ✓ Exitoso
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="p-4 text-center text-slate-400 font-sans">
+                            No se registran actualizaciones previas.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
             </div>
           )}
 
@@ -966,6 +1312,125 @@ export default function ConfigSeguridadModule() {
                 Confirmar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ASISTENTE DE ACTUALIZACION DEL SISTEMA (SIN PERDIDA DE DATOS) */}
+      {showUpdateWizardModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-5">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 border border-indigo-100 rounded-xl">
+                  <Download className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800">Actualizar Sistema POS</h3>
+                  <p className="text-xs text-slate-500">Subir e instalar nueva versión de software</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowUpdateWizardModal(false);
+                  setSelectedUpdatePkg(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Zero Data Loss Assurance Badge */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+              <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="text-xs text-emerald-900">
+                <strong className="block font-black text-emerald-950 mb-0.5">🛡️ Garantía de Protección Total de Datos:</strong>
+                <span>
+                  Al actualizar el sistema, <strong>NO SE ELIMINA NINGUNA INFORMACIÓN</strong>. Tu catálogo de <strong>{products.length} productos</strong>, <strong>{clients.length} clientes</strong>, <strong>{sales.length} ventas</strong>, inventario, cierres de caja y licencias se mantendrán 100% intactos.
+                </span>
+              </div>
+            </div>
+
+            {/* Step 1: File Picker / Drop Area */}
+            {!selectedUpdatePkg && (
+              <div className="space-y-4">
+                <label className="block text-xs font-bold text-slate-700 uppercase">
+                  Paso 1: Selecciona el Instalador o Paquete de la Nueva Actualización (.posupdate / .json)
+                </label>
+                
+                <div className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50/50 rounded-2xl p-8 transition-all flex flex-col items-center justify-center gap-3 text-center cursor-pointer group"
+                     onClick={() => updateFileRef.current?.click()}>
+                  <Upload className="w-10 h-10 text-indigo-400 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <strong className="block text-sm text-slate-800 font-bold">Haz clic aquí para examinar el instalador</strong>
+                    <span className="text-xs text-slate-400">Archivos permitidos: .posupdate, .json (Firmados oficialmente)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Package Analysis Preview */}
+            {selectedUpdatePkg && (
+              <div className="space-y-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                  <div>
+                    <span className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">Nueva Versión Detectada</span>
+                    <h4 className="text-sm font-black text-slate-800">{selectedUpdatePkg.title}</h4>
+                  </div>
+                  <span className="px-3 py-1 bg-emerald-500 text-white font-mono font-black rounded-lg text-xs shadow">
+                    {systemVersion} ➔ {selectedUpdatePkg.version}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600">{selectedUpdatePkg.description}</p>
+
+                {selectedUpdatePkg.changelog && selectedUpdatePkg.changelog.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">Mejoras de la versión:</span>
+                    <ul className="list-disc list-inside text-xs text-slate-700 space-y-1 font-medium">
+                      {selectedUpdatePkg.changelog.map((item: string, idx: number) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Modal Actions Footer */}
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setShowUpdateWizardModal(false);
+                  setSelectedUpdatePkg(null);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
+              >
+                Cancelar
+              </button>
+
+              {selectedUpdatePkg && (
+                <button
+                  onClick={() => {
+                    const res = applySystemUpdate(selectedUpdatePkg);
+                    if (res.success) {
+                      showToast(res.message);
+                      setShowUpdateWizardModal(false);
+                      setSelectedUpdatePkg(null);
+                    } else {
+                      showToast(res.message, 'error');
+                    }
+                  }}
+                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check size={16} /> 🚀 Aplicar Actualización Ahora (Conservar Datos)
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
       )}

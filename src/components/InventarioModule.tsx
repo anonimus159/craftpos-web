@@ -13,6 +13,7 @@ export default function InventarioModule() {
     products,
     suppliers,
     addProduct,
+    bulkUpsertProducts,
     updateProduct,
     deleteProduct,
     adjustStock,
@@ -76,7 +77,7 @@ export default function InventarioModule() {
   const [showAddTransferModal, setShowAddTransferModal] = useState(false);
   const [showAdjustIngredientModal, setShowAdjustIngredientModal] = useState(false);
 
-  // Excel Import States
+  // Excel & Bulk Import States
   const [showImportModal, setShowImportModal] = useState(false);
   const [importResults, setImportResults] = useState<{
     imported: number;
@@ -85,6 +86,8 @@ export default function InventarioModule() {
   } | null>(null);
   const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
   const [importStep, setImportStep] = useState<'upload' | 'preview' | 'done'>('upload');
+  const [updateExistingOnImport, setUpdateExistingOnImport] = useState(false);
+  const [rawTextImport, setRawTextImport] = useState('');
   const importFileRef = useRef<HTMLInputElement>(null);
 
   // Ingredient Adjustment State
@@ -369,75 +372,108 @@ export default function InventarioModule() {
     if (importFileRef.current) importFileRef.current.value = '';
   };
 
+  const handleParsePastedText = (text: string) => {
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length === 0) {
+      showToast('Por favor pega al menos una línea con datos.', 'error');
+      return;
+    }
+
+    const firstLine = lines[0].toLowerCase();
+    const hasHeader = firstLine.includes('sku') || firstLine.includes('nombre') || firstLine.includes('precio') || firstLine.includes('costo');
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    const rows = dataLines.map((line, idx) => {
+      const separator = line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',';
+      const cells = line.split(separator).map(c => c.trim().replace(/["']/g, ''));
+      
+      const sku = cells[0] || `SKU-${Date.now()}-${idx + 1}`;
+      const name = cells[1] || cells[0] || `Producto ${idx + 1}`;
+      const salePrice = parseFloat(cells[2]) || parseFloat(cells[3]) || 1.0;
+      const costPrice = parseFloat(cells[3]) || 0;
+      const stock = parseInt(cells[4]) || 0;
+      const category = cells[5] || 'General';
+      const barcode = cells[6] || '';
+      const minStock = parseInt(cells[7]) || 5;
+
+      return {
+        row: idx + (hasHeader ? 2 : 1),
+        sku: sku.trim().toUpperCase(),
+        name: name.trim(),
+        salePrice,
+        costPrice,
+        stock,
+        category,
+        barcode,
+        minStock
+      };
+    });
+
+    setImportPreviewData(rows);
+    setImportStep('preview');
+  };
+
   const handleConfirmImport = () => {
+    const validItems: Omit<Product, 'id'>[] = [];
     const errors: { row: number; sku: string; reason: string }[] = [];
-    let imported = 0;
 
     for (const row of importPreviewData) {
-      // Validation 1: SKU required
       if (!row.sku || row.sku.trim() === '') {
-        errors.push({
-          row: row.row,
-          sku: '(vacío)',
-          reason: 'El campo SKU/Código está vacío. Cada producto debe tener un código único.',
-        });
+        errors.push({ row: row.row, sku: '(vacío)', reason: 'El campo SKU/Código está vacío.' });
         continue;
       }
 
-      // Validation 2: SKU already exists in system
+      if (!row.name || row.name.trim() === '') {
+        errors.push({ row: row.row, sku: row.sku, reason: 'El campo Nombre/Producto está vacío.' });
+        continue;
+      }
+
+      if (row.salePrice <= 0) {
+        errors.push({ row: row.row, sku: row.sku, reason: `El precio de venta es inválido (${row.salePrice}).` });
+        continue;
+      }
+
       const existingProduct = products.find(
         p => p.sku.toLowerCase().trim() === row.sku.toLowerCase().trim()
       );
-      if (existingProduct) {
+
+      if (existingProduct && !updateExistingOnImport) {
         errors.push({
           row: row.row,
           sku: row.sku,
-          reason: `⚠️ El código SKU "${row.sku}" ya existe en el sistema (Producto: "${existingProduct.name}"). Se ignoró esta fila para no sobreescribir datos existentes.`,
+          reason: `⚠️ El SKU "${row.sku}" ya existe ("${existingProduct.name}"). Se ignoró (activa "Sobreescribir" si deseas actualizar).`,
         });
         continue;
       }
 
-      // Validation 3: Name required
-      if (!row.name || row.name.trim() === '') {
-        errors.push({
-          row: row.row,
-          sku: row.sku,
-          reason: 'El campo Nombre/Producto está vacío.',
-        });
-        continue;
-      }
-
-      // Validation 4: Price must be positive
-      if (row.salePrice <= 0) {
-        errors.push({
-          row: row.row,
-          sku: row.sku,
-          reason: `El precio de venta es 0 o inválido (${row.salePrice}). Debe ser mayor a 0.`,
-        });
-        continue;
-      }
-
-      // All validations passed - add product
-      addProduct({
+      validItems.push({
         name: row.name.trim(),
         category: row.category || 'General',
         barcode: row.barcode || '',
         sku: row.sku.trim().toUpperCase(),
-        costPrice: row.costPrice,
+        costPrice: row.costPrice || 0,
         salePrice: row.salePrice,
-        stock: row.stock,
-        minStock: row.minStock,
+        stock: row.stock || 0,
+        minStock: row.minStock || 5,
         description: '',
         storeType: currentModule as any,
         trackInventory: true,
         active: true,
       });
-      imported++;
     }
 
-    setImportResults({ imported, errors, preview: importPreviewData });
-    setImportStep('done');
-    if (imported > 0) showToast(`✓ ${imported} producto(s) importado(s) correctamente.`, 'success');
+    if (validItems.length > 0) {
+      const res = bulkUpsertProducts(validItems, updateExistingOnImport);
+      const totalProcessed = res.added + res.updated;
+
+      setImportResults({ imported: totalProcessed, errors, preview: importPreviewData });
+      setImportStep('done');
+      showToast(`✓ Carga Masiva Exitosa: ${res.added} creados, ${res.updated} actualizados.`, 'success');
+    } else {
+      setImportResults({ imported: 0, errors, preview: importPreviewData });
+      setImportStep('done');
+      showToast('No se agregaron productos válidos.', 'error');
+    }
   };
 
   const handleDownloadTemplate = () => {
@@ -2445,24 +2481,23 @@ export default function InventarioModule() {
             {importStep === 'upload' && (
               <div className="space-y-5">
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4">
-                  <p className="text-blue-300 text-sm font-medium mb-2">📋 Requisitos del archivo:</p>
+                  <p className="text-blue-300 text-sm font-medium mb-2">📋 Carga Masiva de Productos (Excel, CSV o Pegar Texto):</p>
                   <ul className="text-blue-300/70 text-xs space-y-1">
-                    <li>• Formato CSV o TXT separado por comas (,) o punto y coma (;)</li>
-                    <li>• La primera fila debe ser el encabezado con los nombres de columnas</li>
-                    <li>• <strong>Columnas obligatorias:</strong> SKU, Nombre/Producto, Precio</li>
-                    <li>• <strong>Columnas opcionales:</strong> Categoria, Barcode, Costo, Stock, StockMin</li>
+                    <li>• Puedes subir un archivo CSV/Excel o <strong>pegar directamente múltiples filas</strong> de texto.</li>
+                    <li>• Columnas recomendadas: <code>SKU, Nombre, Precio, Costo, Stock, Categoria, Barcode</code></li>
                   </ul>
                 </div>
 
+                {/* OPCION 1: SUBIR ARCHIVO */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => importFileRef.current?.click()}
-                    className="flex-1 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-white/20 hover:border-blue-400/50 rounded-2xl p-8 transition-all cursor-pointer group"
+                    className="flex-1 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-white/20 hover:border-blue-400/50 rounded-2xl p-6 transition-all cursor-pointer group"
                   >
-                    <Upload size={32} className="text-white/30 group-hover:text-blue-400 transition-colors" />
+                    <Upload size={28} className="text-white/30 group-hover:text-blue-400 transition-colors" />
                     <div className="text-center">
-                      <p className="text-white/60 text-sm font-medium group-hover:text-white">Seleccionar archivo CSV</p>
-                      <p className="text-white/30 text-xs mt-0.5">Haz clic para examinar</p>
+                      <p className="text-white/60 text-sm font-medium group-hover:text-white">Subir archivo CSV / Excel</p>
+                      <p className="text-white/30 text-xs mt-0.5">Haz clic para examinar tu computador</p>
                     </div>
                   </button>
                   <button
@@ -2470,8 +2505,30 @@ export default function InventarioModule() {
                     className="flex flex-col items-center justify-center gap-2 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 rounded-2xl px-6 py-4 transition-all"
                   >
                     <Download size={20} className="text-emerald-400" />
-                    <span className="text-emerald-400 text-xs font-medium text-center">Descargar<br/>Plantilla</span>
+                    <span className="text-emerald-400 text-xs font-medium text-center">Descargar<br/>Plantilla CSV</span>
                   </button>
+                </div>
+
+                {/* OPCION 2: PEGAR TEXTO MASIVO */}
+                <div className="space-y-2 pt-3 border-t border-white/10">
+                  <label className="block text-xs text-white/60 font-medium">
+                    O pega directamente filas copiadas desde Excel (Separadas por tabulaciones o comas):
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={rawTextImport}
+                    onChange={(e) => setRawTextImport(e.target.value)}
+                    placeholder={`SKU\tNombre\tPrecio\tCosto\tStock\tCategoria\nPROD-101\tProducto Ejemplo\t25.00\t15.00\t100\tGeneral`}
+                    className="w-full bg-[#1a1f2e] border border-white/10 rounded-xl p-3 text-xs text-white font-mono placeholder-white/30 outline-none focus:border-blue-400"
+                  />
+                  {rawTextImport.trim() && (
+                    <button
+                      onClick={() => handleParsePastedText(rawTextImport)}
+                      className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow flex items-center justify-center gap-1.5"
+                    >
+                      ⚡ Procesar {rawTextImport.trim().split('\n').length} filas pegadas
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -2511,11 +2568,11 @@ export default function InventarioModule() {
                             <td className="px-3 py-2 font-mono text-white/60">{row.stock}</td>
                             <td className="px-3 py-2">
                               {hasConflict ? (
-                                <span className="text-amber-400 text-[10px] font-medium">⚠️ SKU duplicado</span>
+                                <span className="text-amber-400 text-[10px] font-medium">⚠️ SKU existente</span>
                               ) : isEmpty ? (
                                 <span className="text-red-400 text-[10px] font-medium">❌ Datos inválidos</span>
                               ) : (
-                                <span className="text-emerald-400 text-[10px] font-medium">✓ OK</span>
+                                <span className="text-emerald-400 text-[10px] font-medium">✓ OK Nuevo</span>
                               )}
                             </td>
                           </tr>
@@ -2528,14 +2585,25 @@ export default function InventarioModule() {
                   )}
                 </div>
 
+                {/* OPCION DE SOBREESCRIBIR DUPLICADOS */}
+                <label className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white/80 cursor-pointer hover:bg-white/10 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={updateExistingOnImport}
+                    onChange={(e) => setUpdateExistingOnImport(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-500 bg-white/10 border-white/20 focus:ring-0 cursor-pointer"
+                  />
+                  <span>Actualizar/Sobreescribir precio y stock de productos existentes si su SKU coincide</span>
+                </label>
+
                 <div className="flex gap-3">
                   <button onClick={() => setImportStep('upload')}
                     className="px-5 py-2.5 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-sm transition-all">
                     ← Volver
                   </button>
                   <button onClick={handleConfirmImport}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2">
-                    <Check size={15} /> Confirmar e Importar
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-lg">
+                    <Check size={15} /> Confirmar e Importar {importPreviewData.length} Productos
                   </button>
                 </div>
               </div>

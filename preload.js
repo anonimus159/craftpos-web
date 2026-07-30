@@ -33,7 +33,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Purchase Orders
   dbGetAllPurchaseOrders: () => ipcRenderer.invoke('db-get-all-purchase-orders'),
   dbSavePurchaseOrder: (order) => ipcRenderer.invoke('db-save-purchase-order', order),
-  dbDeletePurchaseOrder: (id) => ipcRenderer.invoke('db-delete-purchase-order', id)
+  dbDeletePurchaseOrder: (id) => ipcRenderer.invoke('db-delete-purchase-order', id),
+
+  // Settings & System Data
+  dbGetSetting: (key) => ipcRenderer.invoke('db-get-setting', key),
+  dbSaveSetting: (key, value) => ipcRenderer.invoke('db-save-setting', key, value)
 });
 
 window.addEventListener('DOMContentLoaded', () => {

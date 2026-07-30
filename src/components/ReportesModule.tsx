@@ -28,8 +28,15 @@ export default function ReportesModule() {
 
   const sym = appConfig.currencySymbol || "S/";
 
-  const [activeReportTab, setActiveReportTab] = useState<'global' | 'consolidated' | 'verticals' | 'export'>('consolidated');
-  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month'>('today');
+  const [activeReportTab, setActiveReportTab] = useState<'global' | 'consolidated' | 'caja' | 'verticals' | 'export'>('consolidated');
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [customStartDate, setCustomStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [selectedRegisterFilter, setSelectedRegisterFilter] = useState<'all' | string>('all');
   const [selectedBranchId, setSelectedBranchId] = useState<'all' | string>('all');
 
   // Export simulation states
@@ -47,26 +54,42 @@ export default function ReportesModule() {
   const activeModulesCount = Object.values(licensedModules || {}).filter(Boolean).length;
   const hasMultipleModules = activeModulesCount > 1;
 
-  // 1. KPI Calculations
+  // 1. Date Range & KPI Calculations
   const activeBranchName = selectedBranchId === 'all' ? 'Todas las sedes' : (branches.find(b => b.id === selectedBranchId)?.name || 'Sede');
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const startOfWeek = startOfToday - (now.getDay() * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+
+  const isTimestampInDateRange = (timestamp: string | number) => {
+    const time = new Date(timestamp).getTime();
+    if (isNaN(time)) return true;
+    if (dateRange === 'today') return time >= startOfToday;
+    if (dateRange === 'week') return time >= startOfWeek;
+    if (dateRange === 'month') return time >= startOfMonth;
+    if (dateRange === 'year') return time >= startOfYear;
+    if (dateRange === 'custom') {
+      const start = customStartDate ? new Date(`${customStartDate}T00:00:00`).getTime() : 0;
+      const end = customEndDate ? new Date(`${customEndDate}T23:59:59`).getTime() : Date.now();
+      return time >= start && time <= end;
+    }
+    return true;
+  };
 
   const filteredSalesByBranch = sales.filter(s => {
     if (selectedBranchId !== 'all' && s.branchId !== selectedBranchId) return false;
     
-    // ONLY show sales for the active module unless we are in the Global dashboard
-    if (activeReportTab !== 'global' && s.storeType !== currentModule) return false; 
+    // ONLY show sales for the active module unless we are in the Global dashboard or Caja report
+    if (activeReportTab !== 'global' && activeReportTab !== 'caja' && s.storeType !== currentModule) return false; 
     
-    const saleTime = new Date(s.timestamp).getTime();
-    if (dateRange === 'today' && saleTime < startOfToday) return false;
-    if (dateRange === 'week' && saleTime < startOfWeek) return false;
-    if (dateRange === 'month' && saleTime < startOfMonth) return false;
-    
-    return true;
+    return isTimestampInDateRange(s.timestamp);
+  });
+
+  const filteredCashMovements = cashMovements.filter(m => {
+    if (selectedRegisterFilter !== 'all' && m.registerId !== selectedRegisterFilter) return false;
+    return isTimestampInDateRange(m.timestamp);
   });
 
   const totalSalesVolume = filteredSalesByBranch.reduce((acc, s) => acc + s.total, 0);
@@ -307,31 +330,65 @@ export default function ReportesModule() {
           </div>
 
           {/* Date range Toggle */}
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+          <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
             <button
               onClick={() => setDateRange('today')}
-              className={`px-3 py-1 font-bold rounded-lg ${
-                dateRange === 'today' ? 'bg-white text-indigo-650 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-1 font-bold rounded-lg transition-all ${
+                dateRange === 'today' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Hoy
             </button>
             <button
               onClick={() => setDateRange('week')}
-              className={`px-3 py-1 font-bold rounded-lg ${
-                dateRange === 'week' ? 'bg-white text-indigo-650 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-1 font-bold rounded-lg transition-all ${
+                dateRange === 'week' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Semana
             </button>
             <button
               onClick={() => setDateRange('month')}
-              className={`px-3 py-1 font-bold rounded-lg ${
-                dateRange === 'month' ? 'bg-white text-indigo-650 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-1 font-bold rounded-lg transition-all ${
+                dateRange === 'month' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Mes
             </button>
+            <button
+              onClick={() => setDateRange('year')}
+              className={`px-3 py-1 font-bold rounded-lg transition-all ${
+                dateRange === 'year' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Año
+            </button>
+            <button
+              onClick={() => setDateRange('custom')}
+              className={`px-3 py-1 font-bold rounded-lg transition-all ${
+                dateRange === 'custom' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              📅 Personalizado
+            </button>
+
+            {dateRange === 'custom' && (
+              <div className="flex items-center gap-1 ml-1 pl-2 border-l border-slate-300">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs text-slate-800 outline-none focus:border-indigo-500"
+                />
+                <span className="text-slate-400 font-bold">a</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs text-slate-800 outline-none focus:border-indigo-500"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -342,7 +399,7 @@ export default function ReportesModule() {
           <button
             onClick={() => setActiveReportTab('global')}
             className={`px-4 py-2 rounded-lg transition-all ${
-              activeReportTab === 'global' ? 'bg-white text-indigo-650 shadow' : 'text-slate-600 hover:text-slate-800'
+              activeReportTab === 'global' ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:text-slate-800'
             }`}
           >
             Dashboard Global
@@ -351,15 +408,24 @@ export default function ReportesModule() {
         <button
           onClick={() => setActiveReportTab('consolidated')}
           className={`px-4 py-2 rounded-lg transition-all ${
-            activeReportTab === 'consolidated' ? 'bg-white text-indigo-650 shadow' : 'text-slate-600 hover:text-slate-800'
+            activeReportTab === 'consolidated' ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           Dashboard del Módulo Actual
         </button>
         <button
+          onClick={() => setActiveReportTab('caja')}
+          className={`px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+            activeReportTab === 'caja' ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+          Reporte de Caja por Fechas
+        </button>
+        <button
           onClick={() => setActiveReportTab('verticals')}
           className={`px-4 py-2 rounded-lg transition-all ${
-            activeReportTab === 'verticals' ? 'bg-white text-indigo-650 shadow' : 'text-slate-600 hover:text-slate-800'
+            activeReportTab === 'verticals' ? 'bg-white text-indigo-700 shadow' : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           Informes Especializados por Rubro
@@ -565,6 +631,271 @@ export default function ReportesModule() {
           </div>
         </>
       )}
+
+      {/* TAB CONTENT: REPORTE DE CAJA POR FECHAS */}
+      {activeReportTab === 'caja' && (() => {
+        const cashSalesPeriod = filteredSalesByBranch.filter(s => s.paymentMethod === 'cash').reduce((a, s) => a + s.total, 0);
+        const cardSalesPeriod = filteredSalesByBranch.filter(s => s.paymentMethod === 'card').reduce((a, s) => a + s.total, 0);
+        const transferSalesPeriod = filteredSalesByBranch.filter(s => s.paymentMethod === 'transfer').reduce((a, s) => a + s.total, 0);
+        const datafonoSalesPeriod = filteredSalesByBranch.filter(s => s.paymentMethod === 'datafono').reduce((a, s) => a + s.total, 0);
+        const creditSalesPeriod = filteredSalesByBranch.filter(s => s.paymentMethod === 'credit').reduce((a, s) => a + s.total, 0);
+        const totalSalesPeriod = filteredSalesByBranch.reduce((a, s) => a + s.total, 0);
+
+        const cashInsPeriod = filteredCashMovements.filter(m => m.type === 'in' && m.concept !== 'Apertura de Caja').reduce((a, m) => a + m.amount, 0);
+        const openingCashPeriod = filteredCashMovements.filter(m => m.concept === 'Apertura de Caja').reduce((a, m) => a + m.amount, 0);
+        const cashOutsPeriod = filteredCashMovements.filter(m => m.type === 'out').reduce((a, m) => a + m.amount, 0);
+        const netCashFlowPeriod = cashSalesPeriod + cashInsPeriod - cashOutsPeriod;
+
+        const dateRangeLabel = dateRange === 'today' ? 'Hoy' : dateRange === 'week' ? 'Esta Semana' : dateRange === 'month' ? 'Este Mes' : dateRange === 'year' ? 'Este Año' : `Del ${customStartDate} al ${customEndDate}`;
+
+        return (
+          <div className="flex flex-col gap-6">
+
+            {/* TOP HEADER SUMMARY BAR */}
+            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-6 h-6 text-emerald-400" />
+                  <h3 className="text-lg font-black tracking-tight">Reporte Consolidado de Caja y Arqueos</h3>
+                </div>
+                <p className="text-xs text-slate-300 mt-1">
+                  Filtrado para el periodo: <strong className="text-emerald-400">{dateRangeLabel}</strong> | {activeBranchName} | {selectedRegisterFilter === 'all' ? 'Todas las Cajas' : selectedRegisterFilter.toUpperCase()}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Selector de Caja */}
+                <select
+                  value={selectedRegisterFilter}
+                  onChange={(e) => setSelectedRegisterFilter(e.target.value)}
+                  className="bg-white/10 border border-white/20 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none cursor-pointer"
+                >
+                  <option value="all" className="text-slate-800">Todas las Cajas</option>
+                  <option value="caja-1" className="text-slate-800">Caja 1 (Principal)</option>
+                  <option value="caja-2" className="text-slate-800">Caja 2 (Auxiliar)</option>
+                </select>
+
+                <button
+                  onClick={() => triggerExport('pdf')}
+                  className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md shadow-emerald-500/20"
+                >
+                  <Download size={14} /> Imprimir / PDF
+                </button>
+              </div>
+            </div>
+
+            {/* METRICS CARDS GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Total Facturado ({filteredSalesByBranch.length} ventas)</span>
+                <strong className="text-2xl font-black font-mono text-slate-800 mt-1">{sym} {totalSalesPeriod.toFixed(2)}</strong>
+                <div className="mt-2 text-[10px] text-slate-500 flex justify-between">
+                  <span>Efectivo: <strong>{sym} {cashSalesPeriod.toFixed(2)}</strong></span>
+                  <span>Digital: <strong>{sym} {(cardSalesPeriod + transferSalesPeriod + datafonoSalesPeriod).toFixed(2)}</strong></span>
+                </div>
+              </div>
+
+              <div className="bg-white border border-emerald-200 bg-emerald-50/30 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                <span className="text-[10px] text-emerald-700 font-bold uppercase">Entradas Auxiliares</span>
+                <strong className="text-2xl font-black font-mono text-emerald-600 mt-1">+{sym} {cashInsPeriod.toFixed(2)}</strong>
+                <span className="text-[10px] text-emerald-600 font-semibold mt-2">Depósitos y aportes extra</span>
+              </div>
+
+              <div className="bg-white border border-red-200 bg-red-50/30 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                <span className="text-[10px] text-red-700 font-bold uppercase">Salidas / Egresos de Caja</span>
+                <strong className="text-2xl font-black font-mono text-red-600 mt-1">-{sym} {cashOutsPeriod.toFixed(2)}</strong>
+                <span className="text-[10px] text-red-600 font-semibold mt-2">Pagos a proveedores y retiro</span>
+              </div>
+
+              <div className="bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+                <span className="text-[10px] text-indigo-200 font-bold uppercase">Flujo Neto en Efectivo</span>
+                <strong className="text-2xl font-black font-mono text-white mt-1">{sym} {netCashFlowPeriod.toFixed(2)}</strong>
+                <span className="text-[10px] text-indigo-100 font-semibold mt-2">(Efectivo Ventas + Entradas - Salidas)</span>
+              </div>
+            </div>
+
+            {/* PAYMENT METHODS BREAKDOWN & CASH MOVEMENTS */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* PAYMENT METHODS BREAKDOWN */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2">
+                  Desglose por Métodos de Pago
+                </h4>
+
+                <div className="space-y-3 text-xs">
+                  <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">💵</span>
+                      <div>
+                        <strong className="text-emerald-900 block">Efectivo en Gaveta</strong>
+                        <span className="text-[10px] text-emerald-600 font-semibold">Ventas presenciales</span>
+                      </div>
+                    </div>
+                    <strong className="font-mono text-sm text-emerald-700">{sym} {cashSalesPeriod.toFixed(2)}</strong>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-blue-50 border border-blue-100 p-3 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">💳</span>
+                      <div>
+                        <strong className="text-blue-900 block">Tarjeta Débito/Crédito</strong>
+                        <span className="text-[10px] text-blue-600 font-semibold">Terminal Bancario</span>
+                      </div>
+                    </div>
+                    <strong className="font-mono text-sm text-blue-700">{sym} {cardSalesPeriod.toFixed(2)}</strong>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📲</span>
+                      <div>
+                        <strong className="text-purple-900 block">QR / Transferencia Bancaria</strong>
+                        <span className="text-[10px] text-purple-600 font-semibold">Banca móvil</span>
+                      </div>
+                    </div>
+                    <strong className="font-mono text-sm text-purple-700">{sym} {transferSalesPeriod.toFixed(2)}</strong>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📟</span>
+                      <div>
+                        <strong className="text-indigo-900 block">Datáfono Integrado</strong>
+                        <span className="text-[10px] text-indigo-600 font-semibold">Cobro automático POS</span>
+                      </div>
+                    </div>
+                    <strong className="font-mono text-sm text-indigo-700">{sym} {datafonoSalesPeriod.toFixed(2)}</strong>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📊</span>
+                      <div>
+                        <strong className="text-amber-900 block">Crédito / Cartera</strong>
+                        <span className="text-[10px] text-amber-600 font-semibold">Pendiente de cobro</span>
+                      </div>
+                    </div>
+                    <strong className="font-mono text-sm text-amber-700">{sym} {creditSalesPeriod.toFixed(2)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* CASH MOVEMENTS TABLE */}
+              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Historial de Movimientos de Caja en el Periodo ({filteredCashMovements.length})
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-semibold">{dateRangeLabel}</span>
+                </div>
+
+                <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 text-xs">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                        <th className="p-2.5">Fecha / Hora</th>
+                        <th className="p-2.5">Caja</th>
+                        <th className="p-2.5">Concepto</th>
+                        <th className="p-2.5">Usuario</th>
+                        <th className="p-2.5 text-right">Monto ({sym})</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                      {filteredCashMovements.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-6 text-center text-slate-400 font-sans">
+                            No se encontraron movimientos de caja en el periodo seleccionado.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredCashMovements.map((m, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="p-2 text-slate-500 whitespace-nowrap">
+                              {new Date(m.timestamp).toLocaleDateString('es-BO')} {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="p-2 font-bold text-slate-700 uppercase">{m.registerId || 'Caja 1'}</td>
+                            <td className="p-2 font-sans font-medium text-slate-800">{m.concept}</td>
+                            <td className="p-2 text-slate-500 font-sans">{m.user || 'Admin'}</td>
+                            <td className={`p-2 text-right font-bold ${m.type === 'in' ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {m.type === 'in' ? '+' : '-'}{sym} {m.amount.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* VENTAS DETALLADAS EN EL PERIODO */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Listado de Ventas Facturadas en el Periodo ({filteredSalesByBranch.length})
+                </h4>
+                <button
+                  onClick={() => triggerExport('excel')}
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all"
+                >
+                  Descargar CSV Excel
+                </button>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto rounded-xl border border-slate-200 text-xs">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                      <th className="p-2.5">Ticket N°</th>
+                      <th className="p-2.5">Fecha</th>
+                      <th className="p-2.5">Cajero</th>
+                      <th className="p-2.5">Cliente</th>
+                      <th className="p-2.5 text-center">Método de Pago</th>
+                      <th className="p-2.5 text-right">Total ({sym})</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                    {filteredSalesByBranch.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-6 text-center text-slate-400 font-sans">
+                          No hay ventas registradas para la fecha seleccionada.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSalesByBranch.map((s) => (
+                        <tr key={s.id} className="hover:bg-slate-50">
+                          <td className="p-2.5 font-bold text-indigo-700">#{s.id?.slice(-8)}</td>
+                          <td className="p-2.5 text-slate-500 whitespace-nowrap">
+                            {new Date(s.timestamp).toLocaleDateString('es-BO')} {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="p-2.5 font-sans text-slate-700">{s.cashier || 'Vendedor'}</td>
+                          <td className="p-2.5 font-sans text-slate-600">{s.invoiceName || 'Consumidor Final'}</td>
+                          <td className="p-2.5 text-center font-sans">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              s.paymentMethod === 'cash' ? 'bg-emerald-100 text-emerald-800' :
+                              s.paymentMethod === 'card' ? 'bg-blue-100 text-blue-800' :
+                              s.paymentMethod === 'transfer' ? 'bg-purple-100 text-purple-800' :
+                              s.paymentMethod === 'datafono' ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {s.paymentMethod === 'cash' ? '💵 Efectivo' :
+                               s.paymentMethod === 'card' ? '💳 Tarjeta' :
+                               s.paymentMethod === 'transfer' ? '📲 QR/Transf.' :
+                               s.paymentMethod === 'datafono' ? '📟 Datáfono' : '📊 Crédito'}
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-right font-black text-slate-800">{sym} {s.total?.toFixed(2)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        );
+      })()}
 
       {/* TAB CONTENT: VERTICAL SPECIFIC REPORTS */}
       {activeReportTab === 'verticals' && (

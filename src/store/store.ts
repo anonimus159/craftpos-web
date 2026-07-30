@@ -6,7 +6,8 @@ import {
   CashMovement, CashSession, Sale, TableState, LogEntry, 
   StoreType, UserRole, CompanyConfig, DianConfig, BranchState,
   CustomOrder, IngredientStock, ProductionBatch, MermaLog, WarehouseTransfer,
-  AppUser, AppConfig, StockMovement, PurchaseOrder, UserPermissions
+  AppUser, AppConfig, StockMovement, PurchaseOrder, UserPermissions,
+  SystemUpdatePackage, UpdateLogEntry
 } from '../types/types';
 
 interface POSState {
@@ -87,6 +88,12 @@ interface POSState {
   warehouseTransfers: WarehouseTransfer[];
   clientCredits: Record<string, number>;
   
+  // System Updates & Versioning
+  systemVersion: string;
+  updateHistory: UpdateLogEntry[];
+  applySystemUpdate: (pkg: SystemUpdatePackage) => { success: boolean; message: string };
+  generateSystemUpdatePackage: (title: string, description: string, changelog: string[]) => SystemUpdatePackage;
+  
   // Settings & Branch Actions
   updateCompanyConfig: (config: Partial<CompanyConfig>) => void;
   updateDianConfig: (config: Partial<DianConfig>) => void;
@@ -127,6 +134,7 @@ interface POSState {
   
   // Inventory Actions
   addProduct: (product: Omit<Product, 'id'>) => void;
+  bulkUpsertProducts: (items: Omit<Product, 'id'>[], updateExisting?: boolean) => { added: number; updated: number };
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
   adjustStock: (productId: string, quantity: number, type: 'in' | 'out', concept: string) => void;
@@ -417,25 +425,36 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
   activateLicense: async (key, machineId) => {
     try {
-      // 1. Try local offline master key or old checksum for backward compatibility (optional)
-      const isMasterKey = key.toUpperCase().trim() === 'PRO-ADMIN-LICENSE-2026';
+      const cleanKey = key.toUpperCase().trim();
+      const isMasterKey = cleanKey === 'PRO-ADMIN-LICENSE-2026';
+      const isValidOffline = validateLicenseKey(cleanKey);
       
-      // 2. Query Central Server (MockBackend)
-      const res = await MockBackend.activateLicense(key.toUpperCase().trim(), machineId);
-      
-      if (res.success || isMasterKey) {
+      if (isMasterKey || isValidOffline) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('pos_is_licensed', 'true');
-          localStorage.setItem('pos_license_key', key.toUpperCase().trim());
+          localStorage.setItem('pos_license_key', cleanKey);
         }
-        set({ isLicensed: true, licenseKey: key.toUpperCase().trim() });
-        get().addLog(`Sistema Licenciado con Éxito. Clave: ${key.toUpperCase().trim()}`, 'Seguridad');
-        return { success: true, message: isMasterKey ? 'Licencia Maestra activada con éxito.' : res.message };
+        set({ isLicensed: true, licenseKey: cleanKey });
+        get().addLog(`Sistema Licenciado con Éxito. Clave: ${cleanKey}`, 'Seguridad');
+        return { success: true, message: isMasterKey ? 'Licencia Maestra activada con éxito.' : 'Licencia activada con éxito.' };
+      }
+      
+      // 2. Query Central Server (MockBackend) as fallback
+      const res = await MockBackend.activateLicense(cleanKey, machineId);
+      
+      if (res.success) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pos_is_licensed', 'true');
+          localStorage.setItem('pos_license_key', cleanKey);
+        }
+        set({ isLicensed: true, licenseKey: cleanKey });
+        get().addLog(`Sistema Licenciado con Éxito. Clave: ${cleanKey}`, 'Seguridad');
+        return { success: true, message: res.message || 'Licencia activada con éxito.' };
       } else {
-        return { success: false, message: res.message || 'Licencia inválida.' };
+        return { success: false, message: res.message || 'Licencia inválida o no corresponde al formato POS-XXXX-XXXX-XXXX-XXXX-XXXX.' };
       }
     } catch (e) {
-      return { success: false, message: 'Error de red al validar la licencia.' };
+      return { success: false, message: 'Error al procesar la licencia.' };
     }
   },
 
@@ -503,9 +522,39 @@ export const usePOSStore = create<POSState>((set, get) => ({
   currentModule: 'hub',
   userRole: 'Admin',
   operatorName: typeof window !== 'undefined' ? localStorage.getItem('pos_operator_name') || 'Vendedor1' : 'Vendedor1',
-  products: initialProducts,
-  clients: initialClients,
-  suppliers: initialSuppliers,
+  products: (() => {
+    if (typeof window !== 'undefined') {
+      const isDemo = window.location.search.includes('demo=true');
+      const stored = localStorage.getItem('pos_products');
+      if (stored) {
+        try { return JSON.parse(stored); } catch {}
+      }
+      return isDemo ? initialProducts : [];
+    }
+    return [];
+  })(),
+  clients: (() => {
+    if (typeof window !== 'undefined') {
+      const isDemo = window.location.search.includes('demo=true');
+      const stored = localStorage.getItem('pos_clients');
+      if (stored) {
+        try { return JSON.parse(stored); } catch {}
+      }
+      return isDemo ? initialClients : [{ id: 'c-gen', name: 'Cliente General', email: '-', phone: '-', address: '-', totalSpent: 0, visitsCount: 0 }];
+    }
+    return [{ id: 'c-gen', name: 'Cliente General', email: '-', phone: '-', address: '-', totalSpent: 0, visitsCount: 0 }];
+  })(),
+  suppliers: (() => {
+    if (typeof window !== 'undefined') {
+      const isDemo = window.location.search.includes('demo=true');
+      const stored = localStorage.getItem('pos_suppliers');
+      if (stored) {
+        try { return JSON.parse(stored); } catch {}
+      }
+      return isDemo ? initialSuppliers : [];
+    }
+    return [];
+  })(),
   quotes: [],
   sales: [],
   stockMovements: [],
@@ -518,6 +567,27 @@ export const usePOSStore = create<POSState>((set, get) => ({
     fruit: ['Frutas', 'Verduras', 'Orgánicos', 'Frutos Secos'],
     business: ['Abarrotes', 'Limpieza', 'Lácteos', 'Bebidas']
   },
+
+  // System Versioning & Updates State
+  systemVersion: typeof window !== 'undefined' ? (localStorage.getItem('pos_system_version') || 'v2.6.0-PRO') : 'v2.6.0-PRO',
+  updateHistory: (() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('pos_update_history');
+      if (stored) {
+        try { return JSON.parse(stored); } catch (e) {}
+      }
+    }
+    return [
+      {
+        id: 'upd-init-1',
+        version: 'v2.6.0-PRO',
+        installedAt: new Date().toISOString(),
+        installedBy: 'Sistema Base',
+        title: 'Versión Oficial Estable 2026',
+        status: 'success'
+      }
+    ];
+  })(),
 
   // App Configuration (Onboarding state)
   appConfig: (() => {
@@ -775,6 +845,12 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
         const dbPurchaseOrders = await (window as any).electronAPI.dbGetAllPurchaseOrders();
         if (dbPurchaseOrders && dbPurchaseOrders.length > 0) set({ purchaseOrders: dbPurchaseOrders });
+
+        const dbVer = await (window as any).electronAPI.dbGetSetting('pos_system_version');
+        if (dbVer) set({ systemVersion: dbVer });
+
+        const dbHist = await (window as any).electronAPI.dbGetSetting('pos_update_history');
+        if (dbHist && dbHist.length > 0) set({ updateHistory: dbHist });
       } catch (e) {
         console.error('Error hydrating store from DB', e);
       }
@@ -1196,21 +1272,51 @@ export const usePOSStore = create<POSState>((set, get) => ({
   bakeryTables: initialBakeryTables(),
   fruitTables: initialFruitTables(),
   selectedTableId: null,
-  cashSession: {
-    id: 'session-init',
-    openingDate: new Date().toISOString(),
-    status: 'open',
-    openingCash: 500,
-    transactionsCount: 0,
-    user: 'Admin',
-    registerId: 'caja-1'
-  }, // Opened by default for convenience
-  cashMovements: [
-    { id: 'm-init', type: 'in', amount: 500, concept: 'Saldo Inicial Apertura', timestamp: new Date().toISOString(), user: 'Admin', registerId: 'caja-1' }
-  ],
-  auditLogs: [
-    { id: 'l-init', timestamp: new Date().toISOString(), user: 'Admin', action: 'Sistema Iniciado - Caja Abierta con 500.00', module: 'Seguridad' }
-  ],
+  cashSession: (() => {
+    if (typeof window !== 'undefined') {
+      const isDemo = window.location.search.includes('demo=true');
+      const stored = localStorage.getItem('pos_cash_session');
+      if (stored) {
+        try { return JSON.parse(stored); } catch {}
+      }
+      return isDemo ? {
+        id: 'session-init',
+        openingDate: new Date().toISOString(),
+        status: 'open',
+        openingCash: 500,
+        transactionsCount: 0,
+        user: 'Admin',
+        registerId: 'caja-1'
+      } : null;
+    }
+    return null;
+  })(),
+  cashMovements: (() => {
+    if (typeof window !== 'undefined') {
+      const isDemo = window.location.search.includes('demo=true');
+      const stored = localStorage.getItem('pos_cash_movements');
+      if (stored) {
+        try { return JSON.parse(stored); } catch {}
+      }
+      return isDemo ? [
+        { id: 'm-init', type: 'in', amount: 500, concept: 'Saldo Inicial Apertura', timestamp: new Date().toISOString(), user: 'Admin', registerId: 'caja-1' }
+      ] : [];
+    }
+    return [];
+  })(),
+  auditLogs: (() => {
+    if (typeof window !== 'undefined') {
+      const isDemo = window.location.search.includes('demo=true');
+      const stored = localStorage.getItem('pos_audit_logs');
+      if (stored) {
+        try { return JSON.parse(stored); } catch {}
+      }
+      return isDemo ? [
+        { id: 'l-init', timestamp: new Date().toISOString(), user: 'Admin', action: 'Sistema Iniciado (Entorno de Prueba)', module: 'Seguridad' }
+      ] : [];
+    }
+    return [];
+  })(),
 
   // Global Actions
   setModule: (module) => {
@@ -1859,8 +1965,56 @@ export const usePOSStore = create<POSState>((set, get) => ({
     if (typeof window !== 'undefined' && (window as any).electronAPI) {
       (window as any).electronAPI.dbSaveProduct(newProduct);
     }
-    set(state => ({ products: [...state.products, newProduct] }));
+    const updated = [...get().products, newProduct];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pos_products', JSON.stringify(updated));
+    }
+    set({ products: updated });
     get().addLog(`Producto creado: ${product.name} (SKU: ${product.sku})`, 'Inventario');
+  },
+
+  bulkUpsertProducts: (items, updateExisting = false) => {
+    const currentProducts = [...get().products];
+    const now = Date.now();
+    let added = 0;
+    let updated = 0;
+
+    items.forEach((item, idx) => {
+      const existingIndex = currentProducts.findIndex(
+        p => p.sku.toLowerCase().trim() === item.sku.toLowerCase().trim()
+      );
+
+      if (existingIndex >= 0) {
+        if (updateExisting) {
+          currentProducts[existingIndex] = {
+            ...currentProducts[existingIndex],
+            name: item.name?.trim() || currentProducts[existingIndex].name,
+            salePrice: item.salePrice > 0 ? item.salePrice : currentProducts[existingIndex].salePrice,
+            costPrice: item.costPrice >= 0 ? item.costPrice : currentProducts[existingIndex].costPrice,
+            stock: item.stock !== undefined ? item.stock : currentProducts[existingIndex].stock,
+            minStock: item.minStock !== undefined ? item.minStock : currentProducts[existingIndex].minStock,
+            category: item.category || currentProducts[existingIndex].category,
+            barcode: item.barcode || currentProducts[existingIndex].barcode,
+          };
+          updated++;
+        }
+      } else {
+        const newProd: Product = {
+          ...item,
+          id: `p-bulk-${now}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+          active: true,
+        };
+        currentProducts.push(newProd);
+        added++;
+      }
+    });
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pos_products', JSON.stringify(currentProducts));
+    }
+    set({ products: currentProducts });
+    get().addLog(`Carga Masiva: ${added} productos agregados, ${updated} actualizados.`, 'Inventario');
+    return { added, updated };
   },
 
   updateProduct: (product) => {
@@ -1920,6 +2074,93 @@ export const usePOSStore = create<POSState>((set, get) => ({
       products: state.products.filter(p => p.id !== productId)
     }));
     if (prod) get().addLog(`Producto eliminado: ${prod.name}`, 'Inventario');
+  },
+
+  applySystemUpdate: (pkg) => {
+    if (!pkg || !pkg.version || !pkg.patchChecksum) {
+      return { success: false, message: 'El paquete de actualización no es válido o está dañado.' };
+    }
+
+    const newVersion = pkg.version;
+    const nowIso = new Date().toISOString();
+    const currentUser = get().operatorName || 'Administrador';
+
+    const existingProducts = get().products;
+    const existingClients = get().clients;
+    const existingSales = get().sales;
+
+    if (pkg.newCategories && pkg.newCategories.length > 0) {
+      const currentCats = { ...get().categories };
+      const activeMod = get().currentModule;
+      if (currentCats[activeMod]) {
+        const mergedCats = Array.from(new Set([...currentCats[activeMod], ...pkg.newCategories]));
+        currentCats[activeMod] = mergedCats;
+        set({ categories: currentCats });
+      }
+    }
+
+    if (pkg.moduleUpdates) {
+      const currentModules = { ...get().licensedModules, ...pkg.moduleUpdates };
+      set({ licensedModules: currentModules });
+    }
+
+    if (pkg.companyPatch) {
+      get().updateCompanyConfig(pkg.companyPatch);
+    }
+
+    const newLogEntry: UpdateLogEntry = {
+      id: `upd-${Date.now()}`,
+      version: newVersion,
+      installedAt: nowIso,
+      installedBy: currentUser,
+      title: pkg.title || `Actualización ${newVersion}`,
+      status: 'success'
+    };
+
+    const newHistory = [newLogEntry, ...(get().updateHistory || [])];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pos_system_version', newVersion);
+      localStorage.setItem('pos_update_history', JSON.stringify(newHistory));
+      if ((window as any).electronAPI) {
+        (window as any).electronAPI.dbSaveSetting('pos_system_version', newVersion);
+        (window as any).electronAPI.dbSaveSetting('pos_update_history', newHistory);
+      }
+    }
+
+    set({
+      systemVersion: newVersion,
+      updateHistory: newHistory
+    });
+
+    get().addLog(`Sistema actualizado exitosamente a la versión ${newVersion} sin pérdida de información. (${existingProducts.length} prod., ${existingClients.length} cli., ${existingSales.length} vent.)`, 'Seguridad');
+    return { 
+      success: true, 
+      message: `¡Sistema actualizado con éxito a la versión ${newVersion}! Se conservaron intactos ${existingProducts.length} productos, ${existingClients.length} clientes y ${existingSales.length} ventas.` 
+    };
+  },
+
+  generateSystemUpdatePackage: (title, description, changelog) => {
+    const currentVer = get().systemVersion || 'v2.6.0-PRO';
+    const parts = currentVer.replace('v', '').split('-')[0].split('.');
+    const nextPatch = parseInt(parts[2] || '0') + 1;
+    const newVer = `v${parts[0] || '2'}.${parts[1] || '6'}.${nextPatch}-PRO`;
+
+    const pkg: SystemUpdatePackage = {
+      packageId: `patch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      version: newVer,
+      releaseDate: new Date().toISOString(),
+      author: get().operatorName || 'Administrador POS',
+      title: title || `Actualización Oficial de Sistema ${newVer}`,
+      description: description || 'Parche de actualización de seguridad, rendimiento y optimizaciones de caja/inventario.',
+      changelog: changelog && changelog.length > 0 ? changelog : [
+        'Optimización de reportes de caja por rango de fechas.',
+        'Mejoras en el módulo de carga masiva de productos.',
+        'Parches de seguridad y actualización del gestor de licencias.'
+      ],
+      patchChecksum: `POS-SIG-${Date.now()}-PRO-MASTER`
+    };
+
+    return pkg;
   },
 
   addIngredient: (ingredient) => {

@@ -99,7 +99,7 @@ function ModuleButton({
 
 // ─── Main component ───────────────────────────────────────────
 export default function HubView({ setActiveTab }: HubViewProps) {
-  const { setModule, operatorName, userRole, logout, isDemoMode, exitDemoMode } = usePOSStore();
+  const { setModule, operatorName, userRole, logout, isDemoMode, exitDemoMode, systemVersion } = usePOSStore();
   const [showAbout, setShowAbout] = useState(false);
   const goTo = (id: StoreType) => { setModule(id); setActiveTab('ventas'); };
 
@@ -196,7 +196,7 @@ export default function HubView({ setActiveTab }: HubViewProps) {
           <Shield className="w-4 h-4 stroke-[2.5]" />
           <span>Rol: <strong>{userRole === 'Admin' ? 'Administrador' : userRole === 'Cajero' ? 'Vendedor' : 'Mozo'}</strong></span>
         </div>
-        <span>Versión 3.1.0</span>
+        <span>Versión {systemVersion || '3.1.0'}</span>
       </div>
 
       {/* ── ABOUT MODAL ── */}

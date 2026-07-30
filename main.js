@@ -195,6 +195,22 @@ ipcMain.handle('db-delete-purchase-order', (event, id) => {
   } catch(e) { return false; }
 });
 
+// Settings & Config (store_data)
+ipcMain.handle('db-get-setting', (event, key) => {
+  try {
+    const row = db.prepare('SELECT value FROM store_data WHERE key = ?').get(key);
+    return row ? JSON.parse(row.value) : null;
+  } catch(e) { return null; }
+});
+
+ipcMain.handle('db-save-setting', (event, key, value) => {
+  try {
+    const stmt = db.prepare('INSERT OR REPLACE INTO store_data (key, value) VALUES (?, ?)');
+    stmt.run(key, JSON.stringify(value));
+    return true;
+  } catch(e) { return false; }
+});
+
 ipcMain.handle('get-printers', async (event) => {
   try {
     return await event.sender.getPrintersAsync();

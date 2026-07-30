@@ -98,28 +98,24 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
         
         {/* LOGO & BRANDING */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          {appConfig.logoBase64 ? (
+          <div 
+            onClick={() => setModule('hub')}
+            className="flex items-center gap-2.5 bg-slate-900/90 hover:bg-slate-900 border border-slate-700/80 p-1.5 pr-3 rounded-2xl cursor-pointer shadow-md transition-all group"
+          >
             <img
-              src={appConfig.logoBase64}
-              alt="Logo"
-              className="w-9 h-9 object-contain rounded-xl border border-slate-200 cursor-pointer"
-              onClick={() => setModule('hub')}
-            />
-          ) : (
-            <img
-              src="/logo_sin_nombre.png"
+              src={appConfig.logoBase64 || "/logo_sin_nombre.png"}
               alt="CraftPOS Logo"
-              className="w-9 h-9 object-contain rounded-xl cursor-pointer"
-              onClick={() => setModule('hub')}
+              className="w-8 h-8 object-contain rounded-xl bg-slate-950 p-1 group-hover:scale-105 transition-transform"
             />
-          )}
-          <div className="cursor-pointer" onClick={() => setModule('hub')}>
-            <p className="font-extrabold text-sm tracking-wide text-slate-900 leading-none">
-              {appConfig.companyName || 'POS Sistema'}
-            </p>
-            {currentModule !== 'hub' && (
-              <p className="text-[10px] text-slate-400 font-medium">{moduleLabel} · {appConfig.cashierName || 'Caja'}</p>
-            )}
+            <div>
+              <p className="font-black text-xs tracking-tight text-white leading-none flex items-center gap-1">
+                <span>{appConfig.companyName || 'CraftPOS System'}</span>
+                <span className="text-[8px] bg-indigo-500/30 text-indigo-300 px-1.5 py-0.2 rounded font-mono">v2.6</span>
+              </p>
+              {currentModule !== 'hub' && (
+                <p className="text-[9px] text-slate-400 font-medium mt-0.5">{moduleLabel} · {appConfig.cashierName || 'Caja 1'}</p>
+              )}
+            </div>
           </div>
 
           {/* Active indicator */}
